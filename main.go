@@ -10,7 +10,7 @@ func main() {
 	// target := musicSearch("Hello")
 	// playMusicVlc(target)
 
-	audio, err := getSong("Hello")
+	audio, err := getSong("Hello Adele")
 	checkErr(err)
 
 	log.Printf("%s\n", audio)
