@@ -11,7 +11,13 @@ type VlcPlayer struct {
 	mediaList  *vlc.MediaList
 	audioQueue []AudioDetails
 	audioState AudioState
-	eventIDs   []vlc.EventID
+	eventIDs   EventIdList
+	quit       chan struct{}
+}
+
+type EventIdList struct {
+	player     []vlc.EventID
+	listPlayer []vlc.EventID
 }
 
 func (vlcPlayer *VlcPlayer) init() error {
@@ -37,26 +43,15 @@ func (vlcPlayer *VlcPlayer) init() error {
 
 	vlcPlayer.mediaList = mediaList
 	vlcPlayer.player = player
+	vlcPlayer.audioState.currentTrackIndex = -1
+	vlcPlayer.quit = make(chan struct{})
 
 	vlcPlayer.attachEvents()
-
-	vlcPlayer.audioState.currentTrackIndex = -1
 
 	return nil
 }
 
 func (vlcPlayer *VlcPlayer) attachEvents() error {
-
-	player, err := vlcPlayer.player.Player()
-	if err != nil {
-		return err
-	}
-
-	// Retrieve player event manager.
-	manager, err := player.EventManager()
-	if err != nil {
-		return err
-	}
 
 	mediaChangedCallback := func(event vlc.Event, userData interface{}) {
 		log.Println("MediaChange Event")
@@ -111,7 +106,34 @@ func (vlcPlayer *VlcPlayer) attachEvents() error {
 		log.Println(vlcPlayer.audioState.String())
 	}
 
-	var eventIDs []vlc.EventID
+	mediaListEndedCallback := func(event vlc.Event, userData interface{}) {
+		log.Println("Media List Ended Event")
+
+		vlcPlayer, ok := userData.(*VlcPlayer)
+		if !ok {
+			log.Println("!! [mediaListEndedCallback] no vlc data")
+			return
+		}
+
+		close(vlcPlayer.quit)
+	}
+
+	player, err := vlcPlayer.player.Player()
+	if err != nil {
+		return err
+	}
+
+	// Retrieve player event manager.
+	manager, err := player.EventManager()
+	if err != nil {
+		return err
+	}
+
+	// Retrieve List Player event manager.
+	manager2, err := vlcPlayer.player.EventManager()
+	if err != nil {
+		return err
+	}
 
 	eventID1, err := manager.Attach(vlc.MediaPlayerMediaChanged, mediaChangedCallback, vlcPlayer)
 	if err != nil {
@@ -123,21 +145,51 @@ func (vlcPlayer *VlcPlayer) attachEvents() error {
 		return err
 	}
 
-	eventIDs = append(eventIDs, eventID1, eventID2)
-	vlcPlayer.eventIDs = eventIDs
+	eventID3, err := manager2.Attach(vlc.MediaListPlayerPlayed, mediaListEndedCallback, vlcPlayer)
+	if err != nil {
+		return err
+	}
+
+	var playerEventID []vlc.EventID
+	playerEventID = append(playerEventID, eventID1, eventID2)
+	vlcPlayer.eventIDs.player = playerEventID
+
+	var lPlayerEventID []vlc.EventID
+	lPlayerEventID = append(lPlayerEventID, eventID3)
+	vlcPlayer.eventIDs.listPlayer = lPlayerEventID
 
 	return nil
 }
 
 func (vlcPlayer *VlcPlayer) close() {
+	log.Println("VLC Player closing...")
 	vlcPlayer.player.Stop()
 	vlcPlayer.mediaList.Release()
+
+	player, err := vlcPlayer.player.Player()
+	if err == nil {
+		// Retrieve player event manager.
+		manager, err := player.EventManager()
+		if err == nil {
+			log.Println("player events detached")
+			manager.Detach(vlcPlayer.eventIDs.player...)
+		}
+	}
+	log.Println("Reached here")
+
 	manager, err := vlcPlayer.player.EventManager()
 	if err == nil {
-		manager.Detach(vlcPlayer.eventIDs...)
+		log.Println("List player event detached")
+		manager.Detach(vlcPlayer.eventIDs.listPlayer...)
+	} else {
+		log.Println(err)
 	}
-	vlcPlayer.player.Release()
-	vlc.Release()
+
+	err = vlcPlayer.player.Release()
+	if err != nil {
+		log.Println(err)
+	}
+	log.Println("VLC Player closed")
 }
 
 // Playback Control

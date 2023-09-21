@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
 	vlc "github.com/adrg/libvlc-go/v3"
@@ -72,8 +71,8 @@ func playMusicVlc2(songName string) {
 	vlcPlayer.appendSong(audio)
 	vlcPlayer.startPlayback()
 
-	var inp string
-	fmt.Scanln(&inp)
+	<-vlcPlayer.quit
+	log.Println("Control reached back")
 }
 
 func playMusicVlc3(songName string) {

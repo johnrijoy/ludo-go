@@ -9,7 +9,7 @@ func getPipedApi() string {
 }
 
 func main() {
-	playMusicVlc2("Hello Adele")
+	playMusicVlc2("3 sec")
 }
 
 func checkErr(err error) {
