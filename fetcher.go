@@ -2,32 +2,21 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
-
-	"github.com/raitonoberu/ytmusic"
 )
 
 func getSong(songName string) (*AudioDetails, error) {
 
 	log.Println("Fetching song: ", songName)
 
-	searchClient := ytmusic.Search(songName)
-	result, err := searchClient.Next()
-	checkErr(err)
+	musicId, err := getPipedApiMusicId(songName)
+	if err != nil {
+		return nil, err
+	}
 
-	//jsonstr, _ := json.MarshalIndent(result, "", "    ")
-	// fmt.Println(string(jsonstr))
-
-	// for _, val := range result.Tracks {
-	// 	arts := ""
-	// 	for _, art := range val.Artists {
-	// 		arts += art.Name
-	// 	}
-	// 	fmt.Printf("%v-%v %v\n", val.Title, arts, val.VideoID)
-	// }
-
-	target := "https://pipedapi.kavin.rocks/streams/" + result.Tracks[0].VideoID
+	target := getPipedApi() + "streams/" + musicId
 
 	log.Println("target: ", target)
 
@@ -37,6 +26,11 @@ func getSong(songName string) (*AudioDetails, error) {
 	}
 
 	log.Println("Resp status: ", resp.Status)
+
+	if resp.StatusCode != 200 {
+		err = errors.New("bad response from api")
+		return nil, err
+	}
 
 	// bB, err := io.ReadAll(resp.Body)
 	// checkErr(err)

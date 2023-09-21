@@ -40,12 +40,17 @@ func (vlcPlayer *VlcPlayer) init() error {
 
 	vlcPlayer.attachEvents()
 
+	vlcPlayer.audioState.currentTrackIndex = -1
+
 	return nil
 }
 
 func (vlcPlayer *VlcPlayer) attachEvents() error {
 
-	player := vlcPlayer.player
+	player, err := vlcPlayer.player.Player()
+	if err != nil {
+		return err
+	}
 
 	// Retrieve player event manager.
 	manager, err := player.EventManager()
@@ -54,46 +59,56 @@ func (vlcPlayer *VlcPlayer) attachEvents() error {
 	}
 
 	mediaChangedCallback := func(event vlc.Event, userData interface{}) {
-		vlcPlayer, ok := userData.(VlcPlayer)
+		log.Println("MediaChange Event")
 
+		vlcPlayer, ok := userData.(*VlcPlayer)
 		if !ok {
+			log.Println("!! [mediaChangedCallback] no vlc data")
 			return
 		}
 
-		log.Println("mediaChange Event")
-
 		vlcPlayer.audioState.currentTrackIndex += 1
 		trackIndex := vlcPlayer.audioState.currentTrackIndex
-		if trackIndex < 0 || trackIndex >= len(vlcPlayer.audioQueue) {
+		log.Println(trackIndex)
+		if trackIndex < 0 || trackIndex > len(vlcPlayer.audioQueue) {
+			log.Println("!! [mediaChangedCallback] invalid track index")
 			return
 		}
 
 		vlcPlayer.audioState.updateAudioState(&vlcPlayer.audioQueue[trackIndex])
+		log.Println(vlcPlayer.audioState.String())
 	}
 
 	positionChangedCallback := func(event vlc.Event, userData interface{}) {
-		vlcPlayer, ok := userData.(VlcPlayer)
+
+		vlcPlayer, ok := userData.(*VlcPlayer)
 		if !ok {
+			log.Println("!! [positionChangedCallback] could not vlc user instance")
 			return
 		}
 
 		log.Println("PositionChange Event")
 		player, err := vlcPlayer.player.Player()
 		if err != nil {
+			log.Println("!! [positionChangedCallback] could not fetch player")
 			return
 		}
 
 		currPos, err := player.MediaTime()
 		if err != nil {
+			log.Println("!! [positionChangedCallback] could not media curr time")
 			return
 		}
 		totPos, err := player.MediaLength()
 		if err != nil {
+			log.Println("!! [positionChangedCallback] could not media total length")
 			return
 		}
 
 		vlcPlayer.audioState.currentPos = currPos / 1000
 		vlcPlayer.audioState.totalLength = totPos / 1000
+
+		log.Println(vlcPlayer.audioState.String())
 	}
 
 	var eventIDs []vlc.EventID
@@ -103,7 +118,7 @@ func (vlcPlayer *VlcPlayer) attachEvents() error {
 		return err
 	}
 
-	eventID2, err := manager.Attach(vlc.MediaPlayerPositionChanged, positionChangedCallback, vlcPlayer)
+	eventID2, err := manager.Attach(vlc.MediaPlayerTimeChanged, positionChangedCallback, vlcPlayer)
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"log"
+
 	vlc "github.com/adrg/libvlc-go/v3"
 )
 
@@ -31,11 +34,55 @@ func playMusicVlc(target string) {
 		close(quit)
 	}
 
+	eventCallback2 := func(event vlc.Event, userData interface{}) {
+		log.Println("Position Changed...")
+	}
+
 	eventID, err := manager.Attach(vlc.MediaPlayerEndReached, eventCallback, nil)
 	checkErr(err)
 	defer manager.Detach(eventID)
 
+	eventID2, err := manager.Attach(vlc.MediaPlayerTimeChanged, eventCallback2, nil)
+	checkErr(err)
+	defer manager.Detach(eventID2)
+
 	err = player.Play()
 	checkErr(err)
 	<-quit
+}
+
+func playMusicVlc2(songName string) {
+	log.Println("Hello Start")
+	// target := musicSearch("Hello")
+	// playMusicVlc(target)
+
+	audio, err := getSong(songName)
+	checkErr(err)
+
+	log.Printf("%s\n", audio)
+	log.Printf("%s\n", audio.uploader)
+	log.Printf("%d\n", audio.duration)
+	//fmt.Println("{}", audio.audioStreamUrl)
+
+	var vlcPlayer VlcPlayer
+	err = vlcPlayer.init()
+	checkErr(err)
+	defer vlcPlayer.close()
+
+	vlcPlayer.appendSong(audio)
+	vlcPlayer.startPlayback()
+
+	var inp string
+	fmt.Scanln(&inp)
+}
+
+func playMusicVlc3(songName string) {
+	log.Println("Hello Start")
+	// target := musicSearch("Hello")
+	// playMusicVlc(target)
+
+	audio, err := getSong(songName)
+	checkErr(err)
+
+	playMusicVlc(audio.audioStreamUrl)
 }

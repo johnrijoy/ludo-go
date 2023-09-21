@@ -2,8 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"net/http"
+	"regexp"
+	"strings"
 
 	"github.com/raitonoberu/ytmusic"
 )
@@ -44,6 +48,50 @@ func musicSearch(search string) string {
 
 	fmt.Println(val)
 	return val
+}
+
+func getPipedApiMusicId(search string) (string, error) {
+	formattedSearch := regexp.MustCompile(`[\s]`).ReplaceAllString(search, "+")
+	target := getPipedApi() + "search?q=" + formattedSearch + "&filter=all"
+
+	log.Println("target: ", target)
+
+	resp, err := http.Get(target)
+	if err != nil {
+		return "", err
+	}
+
+	log.Println("Resp status: ", resp.Status)
+
+	if resp.StatusCode != 200 {
+		err = errors.New("bad response from api")
+		return "", err
+	}
+
+	var response interface{}
+
+	err = json.NewDecoder(resp.Body).Decode(&response)
+	if err != nil {
+		return "", err
+	}
+
+	if trackUrl, ok := getValue(response, path{"items", 0, "url"}).(string); ok {
+		musicId := strings.Split(trackUrl, "=")[1]
+		return musicId, nil
+	}
+
+	err = errors.New("could not fetch music Id")
+	return "", err
+}
+
+func getYoutubeApiMusicId(search string) (string, error) {
+	searchClient := ytmusic.Search(search)
+	result, err := searchClient.Next()
+	if err != nil {
+		return "", err
+	}
+
+	return result.Tracks[0].VideoID, nil
 }
 
 type path []interface{}

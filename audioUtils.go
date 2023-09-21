@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+)
 
 type AudioDetails struct {
 	ytId           string
@@ -30,14 +33,21 @@ type AudioState struct {
 }
 
 func (audioState *AudioState) updateAudioState(audioDetails *AudioDetails) {
+	log.Println("Updating Audio State...")
 	audioState.ytId = audioDetails.ytId
 	audioState.title = audioDetails.title
 	audioState.duration = audioDetails.duration
 	audioState.audioStreamUrl = audioDetails.audioStreamUrl
 }
 
+func (audioState *AudioState) getFormattedPosition() string {
+	formattedPos := fmt.Sprintf("%dm%ds", audioState.currentPos/60, audioState.currentPos%60)
+
+	return formattedPos
+}
+
 func (audioState *AudioState) String() string {
-	formattedAudioDetails := fmt.Sprintf("< song: '%s'  duration: %s >", audioState.title, audioState.getFormattedDuration())
+	formattedAudioDetails := fmt.Sprintf("< song: '%s' Pos: %s  duration: %s >", audioState.title, audioState.getFormattedPosition(), audioState.getFormattedDuration())
 
 	return formattedAudioDetails
 }
