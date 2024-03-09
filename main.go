@@ -1,19 +1,8 @@
 package main
 
-import (
-	"log"
-)
-
-func getPipedApi() string {
-	return "https://piapi.ggtyler.dev/"
-}
+import "github.com/ludo-go/frontend"
 
 func main() {
-	playMusicVlc2("3 sec")
-}
-
-func checkErr(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
+	// playMusicVlc3("hello", "call me maybe", "No Surprises radiohead")
+	frontend.RunPrompt()
 }

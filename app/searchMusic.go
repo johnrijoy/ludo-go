@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"encoding/json"
@@ -52,7 +52,7 @@ func musicSearch(search string) string {
 
 func getPipedApiMusicId(search string) (string, error) {
 	formattedSearch := regexp.MustCompile(`[\s]`).ReplaceAllString(search, "+")
-	target := getPipedApi() + "search?q=" + formattedSearch + "&filter=all"
+	target := GetPipedApi() + "search?q=" + formattedSearch + "&filter=all"
 
 	log.Println("target: ", target)
 

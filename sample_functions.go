@@ -4,6 +4,7 @@ import (
 	"log"
 
 	vlc "github.com/adrg/libvlc-go/v3"
+	"github.com/ludo-go/app"
 )
 
 func playMusicVlc(target string) {
@@ -55,33 +56,58 @@ func playMusicVlc2(songName string) {
 	// target := musicSearch("Hello")
 	// playMusicVlc(target)
 
-	audio, err := getSong(songName)
+	audio, err := app.GetSong(songName)
 	checkErr(err)
 
 	log.Printf("%s\n", audio)
-	log.Printf("%s\n", audio.uploader)
-	log.Printf("%d\n", audio.duration)
+	log.Printf("%s\n", audio.Uploader)
+	log.Printf("%d\n", audio.Duration)
 	//fmt.Println("{}", audio.audioStreamUrl)
 
-	var vlcPlayer VlcPlayer
-	err = vlcPlayer.init()
+	var vlcPlayer app.VlcPlayer
+	err = vlcPlayer.Init()
 	checkErr(err)
-	defer vlcPlayer.close()
+	defer vlcPlayer.Close()
 
-	vlcPlayer.appendSong(audio)
-	vlcPlayer.startPlayback()
+	vlcPlayer.AppendSong(audio)
+	vlcPlayer.StartPlayback()
 
-	<-vlcPlayer.quit
+	<-vlcPlayer.Quit
 	log.Println("Control reached back")
 }
 
-func playMusicVlc3(songName string) {
-	log.Println("Hello Start")
-	// target := musicSearch("Hello")
-	// playMusicVlc(target)
-
-	audio, err := getSong(songName)
+func playMusicVlc3(songList ...string) {
+	var vlcPlayer app.VlcPlayer
+	err := vlcPlayer.Init()
 	checkErr(err)
+	defer vlcPlayer.Close()
 
-	playMusicVlc(audio.audioStreamUrl)
+	log.Println("Before mediastate: {}")
+
+	for _, songName := range songList {
+		log.Println(songName)
+		// target := musicSearch("Hello")
+		// playMusicVlc(target)
+
+		audio, err := app.GetSong(songName)
+		checkErr(err)
+
+		log.Printf("%s\n", audio)
+		log.Printf("%s\n", audio.Uploader)
+		log.Printf("%d\n", audio.Duration)
+		//fmt.Println("{}", audio.audioStreamUrl)
+
+		vlcPlayer.AppendSong(audio)
+	}
+
+	vlcPlayer.StartPlayback()
+
+	<-vlcPlayer.Quit
+	log.Println("Control reached back")
+}
+
+func checkErr(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
 }

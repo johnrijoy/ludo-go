@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func getSong(songName string) (*AudioDetails, error) {
+func GetSong(songName string) (*AudioDetails, error) {
 
 	log.Println("Fetching song: ", songName)
 
@@ -16,7 +16,7 @@ func getSong(songName string) (*AudioDetails, error) {
 		return nil, err
 	}
 
-	target := getPipedApi() + "streams/" + musicId
+	target := GetPipedApi() + "streams/" + musicId
 
 	log.Println("target: ", target)
 
@@ -44,16 +44,16 @@ func getSong(songName string) (*AudioDetails, error) {
 
 	var audio AudioDetails
 	if title, ok := getValue(response, path{"title"}).(string); ok {
-		audio.title = title
+		audio.Title = title
 	}
 	if uploader, ok := getValue(response, path{"uploader"}).(string); ok {
-		audio.uploader = uploader
+		audio.Uploader = uploader
 	}
 	if duration, ok := getValue(response, path{"duration"}).(float64); ok {
-		audio.duration = int(duration)
+		audio.Duration = int(duration)
 	}
 	if trackUrl, ok := getValue(response, path{"audioStreams", 0, "url"}).(string); ok {
-		audio.audioStreamUrl = trackUrl
+		audio.AudioStreamUrl = trackUrl
 	}
 
 	log.Println("audio: ", audio)

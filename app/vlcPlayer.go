@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"log"
@@ -12,7 +12,7 @@ type VlcPlayer struct {
 	audioQueue []AudioDetails
 	audioState AudioState
 	eventIDs   EventIdList
-	quit       chan struct{}
+	Quit       chan struct{}
 }
 
 type EventIdList struct {
@@ -20,7 +20,7 @@ type EventIdList struct {
 	listPlayer []vlc.EventID
 }
 
-func (vlcPlayer *VlcPlayer) init() error {
+func (vlcPlayer *VlcPlayer) Init() error {
 	err := vlc.Init("--no-video", "--quiet")
 	if err != nil {
 		return err
@@ -43,12 +43,155 @@ func (vlcPlayer *VlcPlayer) init() error {
 
 	vlcPlayer.mediaList = mediaList
 	vlcPlayer.player = player
+	vlcPlayer.audioQueue = make([]AudioDetails, 0)
+	vlcPlayer.audioState = AudioState{}
+	vlcPlayer.Quit = make(chan struct{})
 	vlcPlayer.audioState.currentTrackIndex = -1
-	vlcPlayer.quit = make(chan struct{})
 
 	vlcPlayer.attachEvents()
 
 	return nil
+}
+
+func (vlcPlayer *VlcPlayer) Close() {
+	log.Println("VLC Player closing...")
+	vlcPlayer.player.Stop()
+	vlcPlayer.mediaList.Release()
+
+	player, err := vlcPlayer.player.Player()
+	if err == nil {
+		// Retrieve player event manager.
+		manager, err := player.EventManager()
+		if err == nil {
+			log.Println("player events detached")
+			manager.Detach(vlcPlayer.eventIDs.player...)
+		}
+	}
+	log.Println("Reached here")
+
+	manager, err := vlcPlayer.player.EventManager()
+	if err == nil {
+		log.Println("List player event detached")
+		manager.Detach(vlcPlayer.eventIDs.listPlayer...)
+	} else {
+		log.Println(err)
+	}
+
+	err = vlcPlayer.player.Release()
+	if err != nil {
+		log.Println(err)
+	}
+	log.Println("VLC Player closed")
+}
+
+// Playback Control
+func (vlcPlayer *VlcPlayer) StartPlayback() error {
+	return vlcPlayer.player.Play()
+}
+
+func (vlcPlayer *VlcPlayer) StopPlayback() error {
+
+	err := vlcPlayer.player.Stop()
+	if err != nil {
+		return err
+	}
+
+	vlcPlayer.audioState.currentTrackIndex = -1
+	return nil
+}
+
+func (vlcPlayer *VlcPlayer) PauseResume() error {
+	mediaState, err := vlcPlayer.getPlayerState()
+	if err != nil {
+		return err
+	}
+
+	if *mediaState != vlc.MediaEnded {
+		return vlcPlayer.player.TogglePause()
+	}
+	return nil
+}
+
+// info functions
+func (vlcPlayer *VlcPlayer) IsPlaying() bool {
+	return vlcPlayer.player.IsPlaying()
+}
+
+func (vlcPlayer *VlcPlayer) GetAudioState() AudioState {
+	return vlcPlayer.audioState
+}
+
+func (vlcPlayer *VlcPlayer) GetQueueIndex() int {
+	return vlcPlayer.audioState.currentTrackIndex
+}
+
+func (vlcPlayer *VlcPlayer) GetQueue() []AudioDetails {
+	return vlcPlayer.audioQueue
+}
+
+// media control
+func (vlcPlayer *VlcPlayer) AppendSong(audio *AudioDetails) error {
+	mediaState, err := vlcPlayer.getPlayerState()
+	if err != nil {
+		return err
+	}
+
+	if *mediaState == vlc.MediaEnded {
+		// vlcPlayer.resetMediaList()
+		// vlcPlayer.Init()
+		vlcPlayer.Close()
+		vlcPlayer.Init()
+		vlcPlayer.addSongToQueue(audio)
+	} else {
+		vlcPlayer.addSongToQueue(audio)
+	}
+	vlcPlayer.StartPlayback()
+
+	return nil
+}
+
+// Internal Functions
+func (vlcPlayer *VlcPlayer) addSongToQueue(audio *AudioDetails) error {
+	vlcPlayer.audioQueue = append(vlcPlayer.audioQueue, *audio)
+	err := vlcPlayer.mediaList.AddMediaFromURL(audio.AudioStreamUrl)
+
+	return err
+}
+
+func (vlcPlayer *VlcPlayer) resetMediaList() error {
+	vlcPlayer.mediaList.Release()
+
+	mediaList, err := vlc.NewMediaList()
+	if err != nil {
+		return err
+	}
+
+	err = vlcPlayer.player.SetMediaList(mediaList)
+	return err
+}
+
+func (vlcPlayer *VlcPlayer) getPlayerState() (*vlc.MediaState, error) {
+	log.Println("Getting player state")
+	mediaState, err := vlcPlayer.player.MediaState()
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("%v", mediaState)
+
+	return &mediaState, nil
+}
+
+func (vlcPlayer *VlcPlayer) FetchPlayerState() vlc.MediaState {
+	log.Println("Getting player state")
+	mediaState, err := vlcPlayer.player.MediaState()
+	if err != nil {
+		return 99
+	}
+
+	log.Printf("%v", mediaState)
+
+	return mediaState
 }
 
 func (vlcPlayer *VlcPlayer) attachEvents() error {
@@ -100,6 +243,8 @@ func (vlcPlayer *VlcPlayer) attachEvents() error {
 			return
 		}
 
+		log.Printf("currPoss: %d, totalPos: %d\n", currPos, totPos)
+
 		vlcPlayer.audioState.currentPos = currPos / 1000
 		vlcPlayer.audioState.totalLength = totPos / 1000
 
@@ -115,7 +260,7 @@ func (vlcPlayer *VlcPlayer) attachEvents() error {
 			return
 		}
 
-		close(vlcPlayer.quit)
+		close(vlcPlayer.Quit)
 	}
 
 	player, err := vlcPlayer.player.Player()
@@ -159,114 +304,4 @@ func (vlcPlayer *VlcPlayer) attachEvents() error {
 	vlcPlayer.eventIDs.listPlayer = lPlayerEventID
 
 	return nil
-}
-
-func (vlcPlayer *VlcPlayer) close() {
-	log.Println("VLC Player closing...")
-	vlcPlayer.player.Stop()
-	vlcPlayer.mediaList.Release()
-
-	player, err := vlcPlayer.player.Player()
-	if err == nil {
-		// Retrieve player event manager.
-		manager, err := player.EventManager()
-		if err == nil {
-			log.Println("player events detached")
-			manager.Detach(vlcPlayer.eventIDs.player...)
-		}
-	}
-	log.Println("Reached here")
-
-	manager, err := vlcPlayer.player.EventManager()
-	if err == nil {
-		log.Println("List player event detached")
-		manager.Detach(vlcPlayer.eventIDs.listPlayer...)
-	} else {
-		log.Println(err)
-	}
-
-	err = vlcPlayer.player.Release()
-	if err != nil {
-		log.Println(err)
-	}
-	log.Println("VLC Player closed")
-}
-
-// Playback Control
-func (vlcPlayer *VlcPlayer) startPlayback() error {
-	return vlcPlayer.player.Play()
-}
-
-func (vlcPlayer *VlcPlayer) stopPlayback() error {
-
-	err := vlcPlayer.player.Stop()
-	if err != nil {
-		return err
-	}
-
-	vlcPlayer.audioState.currentTrackIndex = -1
-	return nil
-}
-
-func (vlcPlayer *VlcPlayer) pauseResume() error {
-	return vlcPlayer.player.TogglePause()
-}
-
-// info functions
-func (vlcPlayer *VlcPlayer) isPlaying() bool {
-	return vlcPlayer.player.IsPlaying()
-}
-
-func (vlcPlayer *VlcPlayer) getAudioState() AudioState {
-	return vlcPlayer.audioState
-}
-
-// media control
-func (vlcPlayer *VlcPlayer) appendSong(audio *AudioDetails) error {
-	mediaState, err := vlcPlayer.getPlayerState()
-	if err != nil {
-		return err
-	}
-
-	if *mediaState == vlc.MediaEnded {
-		vlcPlayer.resetMediaList()
-		vlcPlayer.addSongToQueue(audio)
-		vlcPlayer.startPlayback()
-	} else {
-		vlcPlayer.addSongToQueue(audio)
-	}
-
-	return nil
-}
-
-// Internal Functions
-func (vlcPlayer *VlcPlayer) addSongToQueue(audio *AudioDetails) error {
-	vlcPlayer.audioQueue = append(vlcPlayer.audioQueue, *audio)
-	err := vlcPlayer.mediaList.AddMediaFromURL(audio.audioStreamUrl)
-
-	return err
-}
-
-func (vlcPlayer *VlcPlayer) resetMediaList() error {
-	vlcPlayer.mediaList.Release()
-
-	mediaList, err := vlc.NewMediaList()
-	if err != nil {
-		return err
-	}
-
-	err = vlcPlayer.player.SetMediaList(mediaList)
-	return err
-}
-
-func (vlcPlayer *VlcPlayer) getPlayerState() (*vlc.MediaState, error) {
-	log.Println("Getting player state")
-	mediaState, err := vlcPlayer.player.MediaState()
-	if err != nil {
-		return nil, err
-	}
-
-	log.Printf("%v", mediaState)
-
-	return &mediaState, nil
 }
