@@ -14,6 +14,8 @@ import (
 
 var vlcPlayer app.VlcPlayer
 
+const defaultForwardRewind = 10
+
 func RunPrompt() {
 	exitSig := false
 
@@ -50,7 +52,7 @@ func runCommand(command string) bool {
 	case "p", "pause", "resume":
 		vlcPlayer.PauseResume()
 
-	case "showq":
+	case "showq", "q":
 		audList := vlcPlayer.GetQueue()
 		qIndex := vlcPlayer.GetQueueIndex()
 
@@ -59,10 +61,10 @@ func runCommand(command string) bool {
 			if qIndex == i {
 				indexMsg = "**" + indexMsg
 			}
-			fmt.Println(indexMsg, " - ", audio.Title)
+			fmt.Println(indexMsg, " - ", safeTruncString(audio.Title, 50))
 		}
 
-	case "curr":
+	case "curr", "c":
 		const scale = 10
 		audState := vlcPlayer.GetAudioState()
 		currPos, totPos := (&audState).GetPositionDetails()
@@ -76,6 +78,45 @@ func runCommand(command string) bool {
 		}
 
 		fmt.Println(&audState)
+
+	case "skipn", "n":
+		err := vlcPlayer.SkipToNext()
+		checkErr(err)
+
+	case "skipb", "b":
+		err := vlcPlayer.SkipToPrevious()
+		checkErr(err)
+
+	case "skip":
+		trackIndex := vlcPlayer.GetQueueIndex() + 1
+		if arg != "" {
+			var err error
+			trackIndex, err = strconv.Atoi(arg)
+			checkErr(err)
+		}
+
+		err := vlcPlayer.SkipToIndex(trackIndex)
+		checkErr(err)
+
+	case "forward", "f":
+		duration := defaultForwardRewind
+		if arg != "" {
+			var err error
+			duration, err = strconv.Atoi(arg)
+			checkErr(err)
+		}
+		err := vlcPlayer.ForwardBySeconds(duration)
+		checkErr(err)
+
+	case "rewind", "r":
+		duration := defaultForwardRewind
+		if arg != "" {
+			var err error
+			duration, err = strconv.Atoi(arg)
+			checkErr(err)
+		}
+		err := vlcPlayer.RewindBySeconds(duration)
+		checkErr(err)
 
 	case "stop":
 		vlcPlayer.StopPlayback()
@@ -94,17 +135,18 @@ func runCommand(command string) bool {
 func checkErr(err error) {
 	if err != nil {
 		fmt.Println("Run into Error: {}", err)
+		vlcPlayer.Close()
 		os.Exit(1)
 	}
 }
 
 func safeTruncString(label string, max int) string {
 	var result string
-	max = max + 3
+
 	if len(label) <= max {
 		result = label
 	} else {
-
+		result = label[0:(max-3)] + "..."
 	}
 
 	return result

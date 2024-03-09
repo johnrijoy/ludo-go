@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"log"
 
 	vlc "github.com/adrg/libvlc-go/v3"
@@ -112,6 +113,83 @@ func (vlcPlayer *VlcPlayer) PauseResume() error {
 	return nil
 }
 
+func (vlcPlayer *VlcPlayer) SkipToNext() error {
+	return vlcPlayer.player.PlayNext()
+}
+
+func (vlcPlayer *VlcPlayer) SkipToPrevious() error {
+	err := vlcPlayer.player.PlayPrevious()
+	if err != nil {
+		return err
+	}
+
+	return vlcPlayer.updateCurrentMedia(vlcPlayer.audioState.currentTrackIndex - 1)
+}
+
+func (vlcPlayer *VlcPlayer) SkipToIndex(trackIndex int) error {
+	if !vlcPlayer.validateTrackIndex(trackIndex) {
+		log.Println("!! [mediaChangedCallback] invalid track index")
+		return errors.New("invalid track index")
+	}
+
+	err := vlcPlayer.player.PlayAtIndex(uint(trackIndex))
+	if err != nil {
+		return err
+	}
+
+	return vlcPlayer.updateCurrentMedia(trackIndex)
+}
+
+func (vlcPlayer *VlcPlayer) ForwardBySeconds(duration int) error {
+	if duration < 0 {
+		return errors.New("negative duration")
+	}
+
+	player, err := vlcPlayer.player.Player()
+	if err != nil {
+		return err
+	}
+
+	totalTime, err := player.MediaLength()
+	if err != nil {
+		return err
+	}
+
+	currTime, err := player.MediaTime()
+	if err != nil {
+		return err
+	}
+
+	newTime := currTime + duration*1000
+	if newTime >= totalTime {
+		newTime = totalTime
+	}
+	return player.SetMediaTime(newTime)
+}
+
+func (vlcPlayer *VlcPlayer) RewindBySeconds(duration int) error {
+	if duration < 0 {
+		return errors.New("negative duration")
+	}
+
+	player, err := vlcPlayer.player.Player()
+	if err != nil {
+		return err
+	}
+
+	currTime, err := player.MediaTime()
+	if err != nil {
+		return err
+	}
+
+	newTime := currTime - duration*1000
+	if newTime <= 0 {
+		newTime = 0
+	}
+
+	return player.SetMediaTime(newTime)
+}
+
 // info functions
 func (vlcPlayer *VlcPlayer) IsPlaying() bool {
 	return vlcPlayer.player.IsPlaying()
@@ -129,6 +207,18 @@ func (vlcPlayer *VlcPlayer) GetQueue() []AudioDetails {
 	return vlcPlayer.audioQueue
 }
 
+func (vlcPlayer *VlcPlayer) FetchPlayerState() vlc.MediaState {
+	log.Println("Getting player state")
+	mediaState, err := vlcPlayer.player.MediaState()
+	if err != nil {
+		return 99
+	}
+
+	log.Printf("%v", mediaState)
+
+	return mediaState
+}
+
 // media control
 func (vlcPlayer *VlcPlayer) AppendSong(audio *AudioDetails) error {
 	mediaState, err := vlcPlayer.getPlayerState()
@@ -137,25 +227,41 @@ func (vlcPlayer *VlcPlayer) AppendSong(audio *AudioDetails) error {
 	}
 
 	if *mediaState == vlc.MediaEnded {
-		// vlcPlayer.resetMediaList()
-		// vlcPlayer.Init()
-		vlcPlayer.Close()
-		vlcPlayer.Init()
-		vlcPlayer.addSongToQueue(audio)
-	} else {
-		vlcPlayer.addSongToQueue(audio)
+		err = vlcPlayer.resetPlayer()
+		if err != nil {
+			return err
+		}
 	}
+	vlcPlayer.addSongToQueue(audio)
 	vlcPlayer.StartPlayback()
 
 	return nil
 }
 
 // Internal Functions
+func (vlcPlayer *VlcPlayer) resetPlayer() error {
+	vlcPlayer.Close()
+	return vlcPlayer.Init()
+}
+
 func (vlcPlayer *VlcPlayer) addSongToQueue(audio *AudioDetails) error {
 	vlcPlayer.audioQueue = append(vlcPlayer.audioQueue, *audio)
 	err := vlcPlayer.mediaList.AddMediaFromURL(audio.AudioStreamUrl)
 
 	return err
+}
+
+func (vlcPlayer *VlcPlayer) updateCurrentMedia(trackIndex int) error {
+	if !vlcPlayer.validateTrackIndex(trackIndex) {
+		log.Println("!! [mediaChangedCallback] invalid track index")
+		return errors.New("invalid track index")
+	}
+
+	vlcPlayer.audioState.currentTrackIndex = trackIndex
+	audio := vlcPlayer.audioQueue[trackIndex]
+	vlcPlayer.audioState.updateAudioState(&audio)
+
+	return nil
 }
 
 func (vlcPlayer *VlcPlayer) resetMediaList() error {
@@ -182,16 +288,8 @@ func (vlcPlayer *VlcPlayer) getPlayerState() (*vlc.MediaState, error) {
 	return &mediaState, nil
 }
 
-func (vlcPlayer *VlcPlayer) FetchPlayerState() vlc.MediaState {
-	log.Println("Getting player state")
-	mediaState, err := vlcPlayer.player.MediaState()
-	if err != nil {
-		return 99
-	}
-
-	log.Printf("%v", mediaState)
-
-	return mediaState
+func (vlcPlayer *VlcPlayer) validateTrackIndex(trackIndex int) bool {
+	return trackIndex < 0 || trackIndex >= len(vlcPlayer.audioQueue)
 }
 
 func (vlcPlayer *VlcPlayer) attachEvents() error {
