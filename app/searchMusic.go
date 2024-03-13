@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"regexp"
+	"net/url"
 	"strings"
 
 	"github.com/raitonoberu/ytmusic"
@@ -51,8 +51,8 @@ func musicSearch(search string) string {
 }
 
 func getPipedApiMusicId(search string) (string, error) {
-	formattedSearch := regexp.MustCompile(`[\s]`).ReplaceAllString(search, "+")
-	target := GetPipedApi() + "search?q=" + formattedSearch + "&filter=all"
+	escapedSearch := url.QueryEscape(search)
+	target := GetPipedApi() + "/search?q=" + escapedSearch + "&filter=music_songs"
 
 	log.Println("target: ", target)
 
@@ -64,7 +64,7 @@ func getPipedApiMusicId(search string) (string, error) {
 	log.Println("Resp status: ", resp.Status)
 
 	if resp.StatusCode != 200 {
-		err = errors.New("bad response from api")
+		err = errors.New("[getPipedApiMusicId] bad response from api")
 		return "", err
 	}
 

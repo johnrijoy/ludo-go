@@ -61,7 +61,7 @@ func runCommand(command string) bool {
 			if qIndex == i {
 				indexMsg = "**" + indexMsg
 			}
-			fmt.Println(indexMsg, " - ", safeTruncString(audio.Title, 50))
+			fmt.Println(indexMsg, " - ", safeTruncString(audio.Title, 50), ", ", safeTruncString(audio.Uploader, 50))
 		}
 
 	case "curr", "c":
@@ -121,6 +121,17 @@ func runCommand(command string) bool {
 	case "stop":
 		vlcPlayer.StopPlayback()
 
+	case "setApi":
+		if arg != "" {
+			app.SetPipedApi(arg)
+			fmt.Println("Api changed from ", app.GetOldPipedApi(), " to ", app.GetPipedApi())
+		} else {
+			fmt.Println("Run into Error:", "No arguments")
+		}
+
+	case "checkApi":
+		fmt.Println("Api: ", app.GetPipedApi())
+
 	case "quit":
 		fmt.Println("Exiting player...")
 		exitSig = true
@@ -134,7 +145,7 @@ func runCommand(command string) bool {
 
 func checkErr(err error) {
 	if err != nil {
-		fmt.Println("Run into Error: {}", err)
+		fmt.Println("Run into Error: ", err)
 		vlcPlayer.Close()
 		os.Exit(1)
 	}

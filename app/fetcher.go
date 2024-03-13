@@ -16,7 +16,7 @@ func GetSong(songName string) (*AudioDetails, error) {
 		return nil, err
 	}
 
-	target := GetPipedApi() + "streams/" + musicId
+	target := GetPipedApi() + "/streams/" + musicId
 
 	log.Println("target: ", target)
 
@@ -28,7 +28,7 @@ func GetSong(songName string) (*AudioDetails, error) {
 	log.Println("Resp status: ", resp.Status)
 
 	if resp.StatusCode != 200 {
-		err = errors.New("bad response from api")
+		err = errors.New("[GetSong] bad response from api")
 		return nil, err
 	}
 
