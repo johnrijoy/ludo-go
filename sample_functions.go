@@ -4,7 +4,7 @@ import (
 	"log"
 
 	vlc "github.com/adrg/libvlc-go/v3"
-	"github.com/ludo-go/app"
+	"github.com/johnrijoy/ludo-go/app"
 )
 
 func playMusicVlc(target string) {

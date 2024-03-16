@@ -1,7 +1,7 @@
 package app
 
 var (
-	api_url     = "https://piapi.ggtyler.dev"
+	api_url     = "https://pipedapi.kavin.rocks"
 	old_api_url string
 )
 

@@ -1,4 +1,4 @@
-module github.com/ludo-go
+module github.com/johnrijoy/ludo-go
 
 go 1.20
 

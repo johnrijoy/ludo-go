@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ludo-go/app"
+	"github.com/johnrijoy/ludo-go/app"
 )
 
 var vlcPlayer app.VlcPlayer
