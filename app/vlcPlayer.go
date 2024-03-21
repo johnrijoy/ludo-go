@@ -2,7 +2,9 @@ package app
 
 import (
 	"errors"
+	"fmt"
 	"log"
+	"strings"
 
 	vlc "github.com/adrg/libvlc-go/v3"
 )
@@ -21,6 +23,19 @@ type EventIdList struct {
 	listPlayer []vlc.EventID
 }
 
+// display information regarding libVlc version
+func Info() string {
+	versionInfo := vlc.Version()
+
+	var sb strings.Builder
+
+	sb.WriteString(fmt.Sprintln("libVlc Binding Version: ", versionInfo.String()))
+	sb.WriteString(fmt.Sprint("Vlc Runtime Version: ", versionInfo.Changeset()))
+
+	return sb.String()
+}
+
+// Creates and initialises a new vlc player
 func (vlcPlayer *VlcPlayer) Init() error {
 	err := vlc.Init("--no-video", "--quiet")
 	if err != nil {
@@ -54,6 +69,7 @@ func (vlcPlayer *VlcPlayer) Init() error {
 	return nil
 }
 
+// Stops and releases the creates vlc player
 func (vlcPlayer *VlcPlayer) Close() {
 	log.Println("VLC Player closing...")
 	vlcPlayer.player.Stop()
@@ -85,7 +101,10 @@ func (vlcPlayer *VlcPlayer) Close() {
 	log.Println("VLC Player closed")
 }
 
-// Playback Control
+//////////////////////
+// Playback Control //
+//////////////////////
+
 func (vlcPlayer *VlcPlayer) StartPlayback() error {
 	return vlcPlayer.player.Play()
 }
@@ -190,7 +209,10 @@ func (vlcPlayer *VlcPlayer) RewindBySeconds(duration int) error {
 	return player.SetMediaTime(newTime)
 }
 
-// info functions
+////////////////////
+// info functions //
+////////////////////
+
 func (vlcPlayer *VlcPlayer) IsPlaying() bool {
 	return vlcPlayer.player.IsPlaying()
 }
@@ -219,7 +241,10 @@ func (vlcPlayer *VlcPlayer) FetchPlayerState() vlc.MediaState {
 	return mediaState
 }
 
-// media control
+///////////////////
+// media control //
+///////////////////
+
 func (vlcPlayer *VlcPlayer) AppendSong(audio *AudioDetails) error {
 	mediaState, err := vlcPlayer.getPlayerState()
 	if err != nil {
@@ -238,7 +263,10 @@ func (vlcPlayer *VlcPlayer) AppendSong(audio *AudioDetails) error {
 	return nil
 }
 
-// Internal Functions
+////////////////////////
+// Internal Functions //
+////////////////////////
+
 func (vlcPlayer *VlcPlayer) resetPlayer() error {
 	vlcPlayer.Close()
 	return vlcPlayer.Init()
@@ -264,6 +292,7 @@ func (vlcPlayer *VlcPlayer) updateCurrentMedia(trackIndex int) error {
 	return nil
 }
 
+// Deprecated: not used, instead use Close and Init a new vlc player
 func (vlcPlayer *VlcPlayer) resetMediaList() error {
 	vlcPlayer.mediaList.Release()
 

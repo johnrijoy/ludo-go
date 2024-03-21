@@ -1,5 +1,7 @@
 package app
 
+const Version = "0.1.0"
+
 var (
 	api_url     = "https://pipedapi.kavin.rocks"
 	old_api_url string

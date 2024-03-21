@@ -22,6 +22,7 @@ func RunPrompt() {
 	log.SetOutput(io.Discard)
 	err := vlcPlayer.Init()
 	checkErr(err)
+	defer vlcPlayer.Close()
 
 	for !exitSig {
 		command := StringPrompt(">>")
@@ -135,6 +136,10 @@ func runCommand(command string) bool {
 	case "quit":
 		fmt.Println("Exiting player...")
 		exitSig = true
+
+	case "version":
+		fmt.Println("Ludo version: ", app.Version)
+		fmt.Println(app.Info())
 
 	default:
 		fmt.Println("Invalid command")
