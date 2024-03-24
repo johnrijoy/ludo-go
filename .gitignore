@@ -21,3 +21,5 @@
 go.work
 .vscode
 #bin
+Taskfile.yml
+.task

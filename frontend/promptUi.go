@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -15,6 +16,23 @@ import (
 var vlcPlayer app.VlcPlayer
 
 const defaultForwardRewind = 10
+
+var commands = map[string]string{
+	"0,play,add":       "play the song | play <song name>",
+	"1,pause,resume,p": "toggle pause/resume",
+	"2,showq,q":        "display song queue",
+	"3,curr,c":         "display current song",
+	"4,skipn,n":        "skip to next song",
+	"5,skipb,b":        "skip to previous song",
+	"6,skip":           "skip to the specified index, default is 1 | skip <index>",
+	"7,forward,f":      "forwads playback by 10s",
+	"8,rewind,r":       "reqinds playback by 10s",
+	"9,stop":           "stops playback",
+	"10,checkApi":      "check the current piped api",
+	"11,setApi":        "set new piped api | setApi <piped api>",
+	"12,version":       "display application details",
+	"13,quit":          "quit application",
+}
 
 func RunPrompt() {
 	exitSig := false
@@ -131,21 +149,40 @@ func runCommand(command string) bool {
 		}
 
 	case "checkApi":
+		fmt.Println("Piped Api: ", app.GetPipedApi())
+
+	case "version":
+		fmt.Println("Ludo version: ", app.Version)
 		fmt.Println("Api: ", app.GetPipedApi())
+		fmt.Println(app.Info())
+
+	case "help":
+		showHelp()
 
 	case "quit":
 		fmt.Println("Exiting player...")
 		exitSig = true
-
-	case "version":
-		fmt.Println("Ludo version: ", app.Version)
-		fmt.Println(app.Info())
 
 	default:
 		fmt.Println("Invalid command")
 	}
 
 	return exitSig
+}
+
+func showHelp() {
+	var keys []string
+	for key := range commands {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	for _, key := range keys {
+		cmd := strings.Join(strings.Split(key, ",")[1:], ", ")
+		//info := strings.Split(commands[key], " | ")
+		info := commands[key]
+		fmt.Printf("%-20s - %s\n", cmd, info)
+	}
 }
 
 func checkErr(err error) {
