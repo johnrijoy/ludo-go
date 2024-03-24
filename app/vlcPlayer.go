@@ -39,7 +39,7 @@ func Info() string {
 }
 
 // Creates and initialises a new vlc player
-func (vlcPlayer *VlcPlayer) Init() error {
+func (vlcPlayer *VlcPlayer) InitPlayer() error {
 	err := vlc.Init("--no-video", "--quiet")
 	if err != nil {
 		return err
@@ -73,7 +73,7 @@ func (vlcPlayer *VlcPlayer) Init() error {
 }
 
 // Stops and releases the creates vlc player
-func (vlcPlayer *VlcPlayer) Close() {
+func (vlcPlayer *VlcPlayer) ClosePlayer() {
 	vlcLog.Println("VLC Player closing...")
 	vlcPlayer.player.Stop()
 	vlcPlayer.mediaList.Release()
@@ -105,8 +105,8 @@ func (vlcPlayer *VlcPlayer) Close() {
 }
 
 func (vlcPlayer *VlcPlayer) ResetPlayer() error {
-	vlcPlayer.Close()
-	return vlcPlayer.Init()
+	vlcPlayer.ClosePlayer()
+	return vlcPlayer.InitPlayer()
 }
 
 //////////////////////
@@ -138,33 +138,6 @@ func (vlcPlayer *VlcPlayer) PauseResume() error {
 		return vlcPlayer.player.TogglePause()
 	}
 	return nil
-}
-
-func (vlcPlayer *VlcPlayer) SkipToNext() error {
-	return vlcPlayer.player.PlayNext()
-}
-
-func (vlcPlayer *VlcPlayer) SkipToPrevious() error {
-	err := vlcPlayer.player.PlayPrevious()
-	if err != nil {
-		return err
-	}
-
-	return vlcPlayer.updateCurrentMedia(vlcPlayer.audioState.currentTrackIndex - 1)
-}
-
-func (vlcPlayer *VlcPlayer) SkipToIndex(trackIndex int) error {
-	if !vlcPlayer.validateTrackIndex(trackIndex) {
-		vlcLog.Println("!! [mediaChangedCallback] invalid track index")
-		return errors.New("invalid track index")
-	}
-
-	err := vlcPlayer.player.PlayAtIndex(uint(trackIndex))
-	if err != nil {
-		return err
-	}
-
-	return vlcPlayer.updateCurrentMedia(trackIndex)
 }
 
 func (vlcPlayer *VlcPlayer) ForwardBySeconds(duration int) error {
@@ -217,6 +190,20 @@ func (vlcPlayer *VlcPlayer) RewindBySeconds(duration int) error {
 	return player.SetMediaTime(newTime)
 }
 
+func (vlcPlayer *VlcPlayer) SetVol(vol int) error {
+
+	if vol < 0 || vol > 100 {
+		return errors.New("invalid volume input")
+	}
+
+	player, err := vlcPlayer.player.Player()
+	if err != nil {
+		return errors.Join(errors.New("error in accessing player"), err)
+	}
+
+	return player.SetVolume(vol)
+}
+
 ////////////////////
 // info functions //
 ////////////////////
@@ -253,7 +240,7 @@ func (vlcPlayer *VlcPlayer) FetchPlayerState() vlc.MediaState {
 // media control //
 ///////////////////
 
-func (vlcPlayer *VlcPlayer) AppendSong(audio *AudioDetails) error {
+func (vlcPlayer *VlcPlayer) AppendAudio(audio *AudioDetails) error {
 	mediaState, err := vlcPlayer.getPlayerState()
 	if err != nil {
 		return err
@@ -268,6 +255,96 @@ func (vlcPlayer *VlcPlayer) AppendSong(audio *AudioDetails) error {
 	vlcPlayer.addSongToQueue(audio)
 
 	return nil
+}
+
+func (vlcPlayer *VlcPlayer) RemoveAudioFromIndex(removeIndex int) error {
+	currIndex := vlcPlayer.audioState.currentTrackIndex
+	queueLen, err := vlcPlayer.mediaList.Count()
+	if err != nil {
+		return err
+	}
+
+	if removeIndex <= currIndex || removeIndex > queueLen {
+		errString := fmt.Sprintf("%d, %d, %d", currIndex, removeIndex, queueLen)
+		return errors.New("Invalid remove index: " + errString)
+	}
+
+	if err = vlcPlayer.mediaList.Lock(); err != nil {
+		return err
+	}
+
+	if err = vlcPlayer.mediaList.RemoveMediaAtIndex(uint(removeIndex)); err != nil {
+		vlcPlayer.mediaList.Unlock()
+		return err
+	}
+
+	vlcPlayer.mediaList.Unlock()
+
+	vlcPlayer.audioQueue = append(vlcPlayer.audioQueue[:removeIndex], vlcPlayer.audioQueue[removeIndex+1:]...)
+
+	return nil
+}
+
+func (vlcPlayer *VlcPlayer) RemoveLastAudio(removeIndex int) error {
+	return vlcPlayer.RemoveAudioFromIndex(len(vlcPlayer.audioQueue) - 1)
+}
+
+func (vlcPlayer *VlcPlayer) RemoveAllAudioFromIndex(removeIndex int) error {
+	currIndex := vlcPlayer.audioState.currentTrackIndex
+	queueLen, err := vlcPlayer.mediaList.Count()
+	if err != nil {
+		return err
+	}
+
+	if removeIndex <= currIndex || removeIndex > queueLen {
+		errString := fmt.Sprintf("%d, %d, %d", currIndex, removeIndex, queueLen)
+		return errors.New("Invalid remove index: " + errString)
+	}
+
+	if err = vlcPlayer.mediaList.Lock(); err != nil {
+		return err
+	}
+
+	i := removeIndex
+	for ; i < queueLen; i++ {
+		if err = vlcPlayer.mediaList.RemoveMediaAtIndex(uint(removeIndex)); err != nil {
+			vlcPlayer.mediaList.Unlock()
+			break
+		}
+	}
+
+	vlcPlayer.mediaList.Unlock()
+
+	vlcPlayer.audioQueue = append(vlcPlayer.audioQueue[:removeIndex], vlcPlayer.audioQueue[i:]...)
+
+	return nil
+}
+
+func (vlcPlayer *VlcPlayer) SkipToNext() error {
+	return vlcPlayer.player.PlayNext()
+}
+
+func (vlcPlayer *VlcPlayer) SkipToPrevious() error {
+	err := vlcPlayer.player.PlayPrevious()
+	if err != nil {
+		return err
+	}
+
+	return vlcPlayer.updateCurrentMedia(vlcPlayer.audioState.currentTrackIndex - 1)
+}
+
+func (vlcPlayer *VlcPlayer) SkipToIndex(trackIndex int) error {
+	if !vlcPlayer.validateTrackIndex(trackIndex) {
+		vlcLog.Println("!! [mediaChangedCallback] invalid track index")
+		return errors.New("invalid track index")
+	}
+
+	err := vlcPlayer.player.PlayAtIndex(uint(trackIndex))
+	if err != nil {
+		return err
+	}
+
+	return vlcPlayer.updateCurrentMedia(trackIndex)
 }
 
 ////////////////////////

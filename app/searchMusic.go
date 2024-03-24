@@ -39,8 +39,7 @@ func getPipedApiMusicId(search string) (string, error) {
 		return musicId, nil
 	}
 
-	err = errors.New("could not fetch music Id")
-	return "", err
+	return "", errors.New("could not fetch music Id")
 }
 
 func getPipedApiSong(musicId string, loadRelated bool) (AudioDetails, error) {

@@ -68,11 +68,11 @@ func playMusicVlc2(songName string) {
 	//fmt.Println("{}", audio.audioStreamUrl)
 
 	var vlcPlayer app.VlcPlayer
-	err = vlcPlayer.Init()
+	err = vlcPlayer.InitPlayer()
 	checkErr(err)
-	defer vlcPlayer.Close()
+	defer vlcPlayer.ClosePlayer()
 
-	vlcPlayer.AppendSong(audio)
+	vlcPlayer.AppendAudio(audio)
 	vlcPlayer.StartPlayback()
 
 	<-vlcPlayer.Quit
@@ -81,9 +81,9 @@ func playMusicVlc2(songName string) {
 
 func playMusicVlc3(songList ...string) {
 	var vlcPlayer app.VlcPlayer
-	err := vlcPlayer.Init()
+	err := vlcPlayer.InitPlayer()
 	checkErr(err)
-	defer vlcPlayer.Close()
+	defer vlcPlayer.ClosePlayer()
 
 	log.Println("Before mediastate: {}")
 
@@ -100,7 +100,7 @@ func playMusicVlc3(songList ...string) {
 		log.Printf("%d\n", audio.Duration)
 		//fmt.Println("{}", audio.audioStreamUrl)
 
-		vlcPlayer.AppendSong(audio)
+		vlcPlayer.AppendAudio(audio)
 	}
 
 	vlcPlayer.StartPlayback()

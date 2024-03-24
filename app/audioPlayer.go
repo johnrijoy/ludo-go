@@ -2,19 +2,28 @@ package app
 
 type audioPlayer interface {
 	// struct control
-	init()
-	closePlayer()
+	InitPlayer()
+	ClosePlayer()
+	ResetPlayer()
 
 	// media control
-	appendAudio(AudioDetails)
-	skipAudio()
-	removeAudioFromIndex(int)
-	removeLastAudio()
+	AppendAudio(AudioDetails) error
+	SkipToNext() error
+	SkipToPrevious() error
+	SkipToIndex(trackIndex int) error
+	RemoveAudioFromIndex(int) error
+	RemoveLastAudio()
 
 	// audio playback control
 	startPlayback()
 	stopPlayback()
-	pauseResume()
-	setVol()
-	endPlayer()
+	PauseResume()
+	ForwardBySeconds(int) error
+	RewindBySeconds(int) error
+	SetVol(int) error
+
+	// Info Functions
+	IsPlaying() bool
+	GetQueue() []AudioDetails
+	GetQueueIndex() int
 }

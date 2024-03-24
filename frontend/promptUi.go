@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"math"
+	"math/rand"
 	"os"
 	"sort"
 	"strconv"
@@ -26,22 +27,26 @@ var commands = map[string]string{
 	"5,skipn,n":        "skip to next song",
 	"6,skipb,b":        "skip to previous song",
 	"7,skip":           "skip to the specified index, default is 1 | skip <index>",
-	"8,forward,f":      "forwads playback by 10s",
-	"9,rewind,r":       "reqinds playback by 10s",
-	"10,stop":          "resets the player",
-	"11,checkApi":      "check the current piped api",
-	"12,setApi":        "set new piped api | setApi <piped api>",
-	"13,version":       "display application details",
-	"14,quit":          "quit application",
+	"8,remove,rem":     "remove song at specified index, default is last | remove <index>",
+	"9,removeAll,reml": "remove all songs stating from at specified index, default is current+1 | removeAll <index>",
+	"10,forward,f":     "forwads playback by 10s",
+	"11,rewind,r":      "reqinds playback by 10s",
+	"12,stop":          "resets the player",
+	"13,checkApi":      "check the current piped api",
+	"14,setApi":        "set new piped api | setApi <piped api>",
+	"15,listApi":       "display all available instances",
+	"16,randApi":       "randomly select an piped instance",
+	"17,version":       "display application details",
+	"18,quit":          "quit application",
 }
 
 func RunPrompt() {
 	exitSig := false
 
 	log.SetOutput(io.Discard)
-	err := vlcPlayer.Init()
+	err := vlcPlayer.InitPlayer()
 	checkErr(err)
-	defer vlcPlayer.Close()
+	defer vlcPlayer.ClosePlayer()
 
 	for !exitSig {
 		command := StringPrompt(">>")
@@ -65,7 +70,7 @@ func runCommand(command string) bool {
 			audio, err := app.GetSong(arg, false)
 			checkErr(err)
 
-			vlcPlayer.AppendSong(audio)
+			vlcPlayer.AppendAudio(audio)
 		}
 		vlcPlayer.StartPlayback()
 
@@ -77,14 +82,14 @@ func runCommand(command string) bool {
 			err = vlcPlayer.ResetPlayer()
 			checkErr(err)
 
-			vlcPlayer.AppendSong(audio)
+			vlcPlayer.AppendAudio(audio)
 
 			go func() {
 				audioList, err := app.GetYtRadioList(arg, 10, true)
 				checkErr(err)
 
 				for _, audio := range *audioList {
-					vlcPlayer.AppendSong(&audio)
+					vlcPlayer.AppendAudio(&audio)
 				}
 			}()
 
@@ -142,6 +147,30 @@ func runCommand(command string) bool {
 		err := vlcPlayer.SkipToIndex(trackIndex)
 		checkErr(err)
 
+	case "remove", "rem":
+		trackIndex := len(vlcPlayer.GetQueue()) - 1
+		if arg != "" {
+			var err error
+			trackIndex, err = strconv.Atoi(arg)
+			checkErr(err)
+			trackIndex -= 1
+		}
+
+		err := vlcPlayer.RemoveAudioFromIndex(trackIndex)
+		checkErr(err)
+
+	case "removeAll", "reml":
+		trackIndex := vlcPlayer.GetQueueIndex() + 1
+		if arg != "" {
+			var err error
+			trackIndex, err = strconv.Atoi(arg)
+			checkErr(err)
+			trackIndex -= 1
+		}
+
+		err := vlcPlayer.RemoveAllAudioFromIndex(trackIndex)
+		checkErr(err)
+
 	case "forward", "f":
 		duration := defaultForwardRewind
 		if arg != "" {
@@ -176,6 +205,25 @@ func runCommand(command string) bool {
 
 	case "checkApi":
 		fmt.Println("Piped Api: ", app.GetPipedApi())
+
+	case "listApi":
+		apiList, err := app.GetPipedInstanceList()
+		if err != nil {
+			fmt.Println("Error in fetching Instance list: ", err)
+		} else {
+			for i, inst := range apiList {
+				fmt.Printf("%-2d - %s\n", i, inst)
+			}
+		}
+
+	case "randApi":
+		apiList, err := app.GetPipedInstanceList()
+		if err != nil {
+			fmt.Println("Error in fetching Instance list: ", err)
+		} else {
+			randIndex := rand.Intn(len(apiList))
+			app.SetPipedApi(apiList[randIndex].ApiUrl)
+		}
 
 	case "version":
 		fmt.Println("Ludo version: ", app.Version)
@@ -214,7 +262,7 @@ func showHelp() {
 func checkErr(err error) {
 	if err != nil {
 		fmt.Println("Run into Error: ", err)
-		vlcPlayer.Close()
+		vlcPlayer.ClosePlayer()
 		os.Exit(1)
 	}
 }
