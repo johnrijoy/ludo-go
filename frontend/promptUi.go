@@ -61,7 +61,7 @@ func runCommand(command string) bool {
 	switch command {
 	case "play", "add":
 		if arg != "" {
-			audio, err := app.GetSong(arg)
+			audio, err := app.GetSong(arg, false)
 			checkErr(err)
 
 			vlcPlayer.AppendSong(audio)

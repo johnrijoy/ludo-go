@@ -5,25 +5,35 @@ import (
 	"log"
 )
 
-type AudioDetails struct {
-	YtId           string
-	Title          string
-	Uploader       string
-	Duration       int
-	AudioStreamUrl string
+// BasicAudio
+type AudioBasic struct {
+	YtId     string
+	Title    string
+	Uploader string
+	Duration int
 }
 
-func (audioDetails *AudioDetails) GetFormattedDuration() string {
-	formattedDuartion := fmt.Sprintf("%dm%ds", audioDetails.Duration/60, audioDetails.Duration%60)
+func (audioBasic *AudioBasic) GetFormattedDuration() string {
+	formattedDuartion := fmt.Sprintf("%dm%ds", audioBasic.Duration/60, audioBasic.Duration%60)
 
 	return formattedDuartion
 }
 
-func (audioDetails *AudioDetails) String() string {
-	formattedAudioDetails := fmt.Sprintf("< song: '%s'  duration: %s >", audioDetails.Title, audioDetails.GetFormattedDuration())
+func (audioBasic *AudioBasic) String() string {
+	formattedAudioDetails := fmt.Sprintf("< song: '%s' uploader: '%s'  duration: %s >", audioBasic.Title, audioBasic.Uploader, audioBasic.GetFormattedDuration())
 
 	return formattedAudioDetails
 }
+
+// AudioDetails
+
+type AudioDetails struct {
+	AudioBasic
+	AudioStreamUrl   string
+	RelatedAudioList []AudioBasic
+}
+
+// AudioState
 
 type AudioState struct {
 	AudioDetails

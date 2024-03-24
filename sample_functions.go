@@ -1,10 +1,13 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 
 	vlc "github.com/adrg/libvlc-go/v3"
 	"github.com/johnrijoy/ludo-go/app"
+	"github.com/raitonoberu/ytmusic"
 )
 
 func playMusicVlc(target string) {
@@ -56,7 +59,7 @@ func playMusicVlc2(songName string) {
 	// target := musicSearch("Hello")
 	// playMusicVlc(target)
 
-	audio, err := app.GetSong(songName)
+	audio, err := app.GetSong(songName, false)
 	checkErr(err)
 
 	log.Printf("%s\n", audio)
@@ -89,7 +92,7 @@ func playMusicVlc3(songList ...string) {
 		// target := musicSearch("Hello")
 		// playMusicVlc(target)
 
-		audio, err := app.GetSong(songName)
+		audio, err := app.GetSong(songName, false)
 		checkErr(err)
 
 		log.Printf("%s\n", audio)
@@ -104,6 +107,30 @@ func playMusicVlc3(songList ...string) {
 
 	<-vlcPlayer.Quit
 	log.Println("Control reached back")
+}
+
+func checkPiped(searchString string) {
+	audio, err := app.GetSong(searchString, true)
+	checkErr(err)
+
+	fmt.Println("selected song: ", audio)
+
+	relatedList := audio.RelatedAudioList
+
+	for i, relatedAudio := range relatedList {
+		fmt.Println(i, " - ", relatedAudio)
+	}
+}
+
+func checkYtMusic(search string) {
+	s := ytmusic.Search(search)
+	result, err := s.Next()
+	if err != nil {
+		panic(err)
+	}
+
+	jsonstr, _ := json.Marshal(result)
+	fmt.Println(string(jsonstr))
 }
 
 func checkErr(err error) {

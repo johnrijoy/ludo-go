@@ -3,52 +3,11 @@ package app
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
-
-	"github.com/raitonoberu/ytmusic"
 )
-
-func musicSearch(search string) string {
-	searchClient := ytmusic.Search(search)
-	result, err := searchClient.Next()
-	checkErr(err)
-
-	//jsonstr, _ := json.MarshalIndent(result, "", "    ")
-	// fmt.Println(string(jsonstr))
-
-	for _, val := range result.Tracks {
-		arts := ""
-		for _, art := range val.Artists {
-			arts += art.Name
-		}
-		fmt.Printf("%v-%v %v\n", val.Title, arts, val.VideoID)
-	}
-
-	target := "https://pipedapi.kavin.rocks/streams/" + result.Tracks[0].VideoID
-
-	fmt.Println(target)
-
-	resp, err := http.Get(target)
-	checkErr(err)
-
-	// bB, err := io.ReadAll(resp.Body)
-	// checkErr(err)
-
-	var response interface{}
-
-	err = json.NewDecoder(resp.Body).Decode(&response)
-	checkErr(err)
-
-	trackUrl := getValue(response, path{"audioStreams", 0, "url"})
-	val := trackUrl.(string)
-
-	fmt.Println(val)
-	return val
-}
 
 func getPipedApiMusicId(search string) (string, error) {
 	escapedSearch := url.QueryEscape(search)
@@ -84,15 +43,93 @@ func getPipedApiMusicId(search string) (string, error) {
 	return "", err
 }
 
-func getYoutubeApiMusicId(search string) (string, error) {
-	searchClient := ytmusic.Search(search)
-	result, err := searchClient.Next()
+func getPipedApiSong(musicId string, loadRelated bool) (AudioDetails, error) {
+	target := GetPipedApi() + "/streams/" + musicId
+
+	log.Println("target: ", target)
+
+	resp, err := http.Get(target)
 	if err != nil {
-		return "", err
+		return AudioDetails{}, err
 	}
 
-	return result.Tracks[0].VideoID, nil
+	log.Println("Resp status: ", resp.Status)
+
+	if resp.StatusCode != 200 {
+		err = errors.New("[GetSong] bad response from api")
+		return AudioDetails{}, err
+	}
+
+	var response interface{}
+
+	err = json.NewDecoder(resp.Body).Decode(&response)
+	if err != nil {
+		return AudioDetails{}, err
+	}
+
+	var audio AudioDetails
+	audio.YtId = musicId
+
+	if title, ok := getValue(response, path{"title"}).(string); ok {
+		audio.Title = title
+	}
+	if uploader, ok := getValue(response, path{"uploader"}).(string); ok {
+		audio.Uploader = uploader
+	}
+	if duration, ok := getValue(response, path{"duration"}).(float64); ok {
+		audio.Duration = int(duration)
+	}
+	if trackUrl, ok := getValue(response, path{"audioStreams", 0, "url"}).(string); ok {
+		audio.AudioStreamUrl = trackUrl
+	}
+	if loadRelated {
+		audio.RelatedAudioList = getPipedApiRelatedSongs(response)
+	}
+
+	return audio, nil
 }
+
+func getPipedApiRelatedSongs(response interface{}) []AudioBasic {
+
+	relatedList, ok := getValue(response, path{"relatedStreams"}).([]interface{})
+	if !ok || len(relatedList) <= 0 {
+		return []AudioBasic{}
+	}
+
+	var audioList []AudioBasic
+
+	for _, relatedItem := range relatedList {
+		streamType := false
+		if audioType, ok := getValue(relatedItem, path{"type"}).(string); ok && audioType == "stream" {
+			streamType = true
+		}
+
+		if streamType {
+			var audio AudioBasic
+
+			if trackUrl, ok := getValue(relatedItem, path{"url"}).(string); ok {
+				audio.YtId = strings.Split(trackUrl, "=")[1]
+			}
+			if title, ok := getValue(relatedItem, path{"title"}).(string); ok {
+				audio.Title = title
+			}
+			if uploader, ok := getValue(relatedItem, path{"uploader"}).(string); ok {
+				audio.Uploader = uploader
+			}
+			if duration, ok := getValue(relatedItem, path{"duration"}).(float64); ok {
+				audio.Duration = int(duration)
+			}
+
+			if audio.Duration < 500 {
+				audioList = append(audioList, audio)
+			}
+		}
+	}
+
+	return audioList
+}
+
+// Json parser
 
 type path []interface{}
 
