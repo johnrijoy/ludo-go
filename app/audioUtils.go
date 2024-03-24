@@ -2,8 +2,11 @@ package app
 
 import (
 	"fmt"
+	"io"
 	"log"
 )
+
+var audioUtilsLog = log.New(io.Discard, "audioUtils: ", log.LstdFlags)
 
 // BasicAudio
 type AudioBasic struct {
@@ -43,7 +46,7 @@ type AudioState struct {
 }
 
 func (audioState *AudioState) updateAudioState(audioDetails *AudioDetails) {
-	log.Println("Updating Audio State...")
+	audioUtilsLog.Println("Updating Audio State...")
 	audioState.currentPos = 0
 	audioState.YtId = audioDetails.YtId
 	audioState.Title = audioDetails.Title

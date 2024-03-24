@@ -133,6 +133,24 @@ func checkYtMusic(search string) {
 	fmt.Println(string(jsonstr))
 }
 
+func checkYtPlaylist(search string) {
+	s := ytmusic.Search(search)
+	result, err := s.Next()
+	if err != nil {
+		checkErr(err)
+	}
+	track := result.Tracks[0]
+
+	audioList, err := app.GetYtPlaylist(track.VideoID)
+	if err != nil {
+		checkErr(err)
+	}
+
+	for _, audio := range audioList {
+		fmt.Println(&audio)
+	}
+}
+
 func checkErr(err error) {
 	if err != nil {
 		log.Fatal(err)

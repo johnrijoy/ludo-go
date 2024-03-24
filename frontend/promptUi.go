@@ -19,19 +19,20 @@ const defaultForwardRewind = 10
 
 var commands = map[string]string{
 	"0,play,add":       "play the song | play <song name>",
-	"1,pause,resume,p": "toggle pause/resume",
-	"2,showq,q":        "display song queue",
-	"3,curr,c":         "display current song",
-	"4,skipn,n":        "skip to next song",
-	"5,skipb,b":        "skip to previous song",
-	"6,skip":           "skip to the specified index, default is 1 | skip <index>",
-	"7,forward,f":      "forwads playback by 10s",
-	"8,rewind,r":       "reqinds playback by 10s",
-	"9,stop":           "stops playback",
-	"10,checkApi":      "check the current piped api",
-	"11,setApi":        "set new piped api | setApi <piped api>",
-	"12,version":       "display application details",
-	"13,quit":          "quit application",
+	"1,radio":          "start radio for song | radio <song name>",
+	"2,pause,resume,p": "toggle pause/resume",
+	"3,showq,q":        "display song queue",
+	"4,curr,c":         "display current song",
+	"5,skipn,n":        "skip to next song",
+	"6,skipb,b":        "skip to previous song",
+	"7,skip":           "skip to the specified index, default is 1 | skip <index>",
+	"8,forward,f":      "forwads playback by 10s",
+	"9,rewind,r":       "reqinds playback by 10s",
+	"10,stop":          "resets the player",
+	"11,checkApi":      "check the current piped api",
+	"12,setApi":        "set new piped api | setApi <piped api>",
+	"13,version":       "display application details",
+	"14,quit":          "quit application",
 }
 
 func RunPrompt() {
@@ -65,6 +66,30 @@ func runCommand(command string) bool {
 			checkErr(err)
 
 			vlcPlayer.AppendSong(audio)
+		}
+		vlcPlayer.StartPlayback()
+
+	case "radio":
+		if arg != "" {
+			audio, err := app.GetSong(arg, false)
+			checkErr(err)
+
+			err = vlcPlayer.ResetPlayer()
+			checkErr(err)
+
+			vlcPlayer.AppendSong(audio)
+
+			go func() {
+				audioList, err := app.GetYtRadioList(arg, 10, true)
+				checkErr(err)
+
+				for _, audio := range *audioList {
+					vlcPlayer.AppendSong(&audio)
+				}
+			}()
+
+		} else {
+			fmt.Println("Run into Error:", "No arguments")
 		}
 		vlcPlayer.StartPlayback()
 
@@ -138,7 +163,8 @@ func runCommand(command string) bool {
 		checkErr(err)
 
 	case "stop":
-		vlcPlayer.StopPlayback()
+		err := vlcPlayer.ResetPlayer()
+		checkErr(err)
 
 	case "setApi":
 		if arg != "" {
