@@ -397,7 +397,7 @@ func (vlcPlayer *VlcPlayer) getPlayerState() (*vlc.MediaState, error) {
 }
 
 func (vlcPlayer *VlcPlayer) validateTrackIndex(trackIndex int) bool {
-	return trackIndex < 0 || trackIndex >= len(vlcPlayer.audioQueue)
+	return trackIndex >= 0 && trackIndex < len(vlcPlayer.audioQueue)
 }
 
 func (vlcPlayer *VlcPlayer) attachEvents() error {

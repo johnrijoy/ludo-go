@@ -1,2 +1,4 @@
 github.com/adrg/libvlc-go/v3 v3.1.5 h1:TGO0dvubmLCSE4ocOtJYMBlPYALm8aGMkCuDZ6cXnM0=
 github.com/adrg/libvlc-go/v3 v3.1.5/go.mod h1:xJK0YD8cyMDejnrTFQinStE6RYCV1nlfS8KmqTpszSc=
+github.com/raitonoberu/ytmusic v0.0.0-20240324143733-0e5780514b1d h1:DKLsoBhIv7TtNPR097b7y6MFcsXqqgHztSihdaMloDE=
+github.com/raitonoberu/ytmusic v0.0.0-20240324143733-0e5780514b1d/go.mod h1:hgP4hPl8kmhAaMjuaxxqKnHa7yA9UkXw4KY97XLyjRs=

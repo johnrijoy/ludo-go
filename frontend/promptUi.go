@@ -57,178 +57,62 @@ func RunPrompt() {
 
 func runCommand(command string) bool {
 	exitSig := false
-	cmdList := strings.Split(command, " ")
-	command = cmdList[0]
-	arg := ""
-	if len(cmdList) > 1 {
-		arg = strings.Join(cmdList[1:], " ")
-	}
+	command, arg := parseCommand(command)
 
 	switch command {
 	case "play", "add":
-		if arg != "" {
-			audio, err := app.GetSong(arg, false)
-			checkErr(err)
-
-			vlcPlayer.AppendAudio(audio)
-		}
-		vlcPlayer.StartPlayback()
+		appendPlay(arg)
 
 	case "radio":
-		if arg != "" {
-			audio, err := app.GetSong(arg, false)
-			checkErr(err)
-
-			err = vlcPlayer.ResetPlayer()
-			checkErr(err)
-
-			vlcPlayer.AppendAudio(audio)
-
-			go func() {
-				audioList, err := app.GetYtRadioList(arg, 10, true)
-				checkErr(err)
-
-				for _, audio := range *audioList {
-					vlcPlayer.AppendAudio(&audio)
-				}
-			}()
-
-		} else {
-			fmt.Println("Run into Error:", "No arguments")
-		}
-		vlcPlayer.StartPlayback()
+		radioPlay(arg)
 
 	case "p", "pause", "resume":
 		vlcPlayer.PauseResume()
 
 	case "showq", "q":
-		audList := vlcPlayer.GetQueue()
-		qIndex := vlcPlayer.GetQueueIndex()
-
-		for i, audio := range audList {
-			indexMsg := strconv.Itoa(i + 1)
-			if qIndex == i {
-				indexMsg = "**" + indexMsg
-			}
-			fmt.Println(indexMsg, " - ", safeTruncString(audio.Title, 50), ", ", safeTruncString(audio.Uploader, 50))
-		}
+		displayQueue()
 
 	case "curr", "c":
-		const scale = 10
-		audState := vlcPlayer.GetAudioState()
-		currPos, totPos := (&audState).GetPositionDetails()
-
-		if totPos > currPos {
-			scaledCurrPos := int(math.Round((float64(currPos) / float64(totPos)) * scale))
-			restPosition := scale - scaledCurrPos
-
-			navMsg := strings.Repeat(">", scaledCurrPos) + strings.Repeat("-", restPosition)
-			fmt.Println(navMsg)
-		}
-
-		fmt.Println(&audState)
+		displayCurrentSong()
 
 	case "skipn", "n":
-		err := vlcPlayer.SkipToNext()
-		checkErr(err)
+		skipNext()
 
 	case "skipb", "b":
-		err := vlcPlayer.SkipToPrevious()
-		checkErr(err)
+		skipPrevious()
 
 	case "skip":
-		trackIndex := vlcPlayer.GetQueueIndex() + 1
-		if arg != "" {
-			var err error
-			trackIndex, err = strconv.Atoi(arg)
-			checkErr(err)
-		}
-
-		err := vlcPlayer.SkipToIndex(trackIndex)
-		checkErr(err)
+		skipIndex(arg)
 
 	case "remove", "rem":
-		trackIndex := len(vlcPlayer.GetQueue()) - 1
-		if arg != "" {
-			var err error
-			trackIndex, err = strconv.Atoi(arg)
-			checkErr(err)
-			trackIndex -= 1
-		}
-
-		err := vlcPlayer.RemoveAudioFromIndex(trackIndex)
-		checkErr(err)
+		removeIndex(arg)
 
 	case "removeAll", "reml":
-		trackIndex := vlcPlayer.GetQueueIndex() + 1
-		if arg != "" {
-			var err error
-			trackIndex, err = strconv.Atoi(arg)
-			checkErr(err)
-			trackIndex -= 1
-		}
-
-		err := vlcPlayer.RemoveAllAudioFromIndex(trackIndex)
-		checkErr(err)
+		removeAllIndex(arg)
 
 	case "forward", "f":
-		duration := defaultForwardRewind
-		if arg != "" {
-			var err error
-			duration, err = strconv.Atoi(arg)
-			checkErr(err)
-		}
-		err := vlcPlayer.ForwardBySeconds(duration)
-		checkErr(err)
+		audioForward(arg)
 
 	case "rewind", "r":
-		duration := defaultForwardRewind
-		if arg != "" {
-			var err error
-			duration, err = strconv.Atoi(arg)
-			checkErr(err)
-		}
-		err := vlcPlayer.RewindBySeconds(duration)
-		checkErr(err)
+		audioRewind(arg)
 
 	case "stop":
-		err := vlcPlayer.ResetPlayer()
-		checkErr(err)
+		resetPlayer()
 
 	case "setApi":
-		if arg != "" {
-			app.SetPipedApi(arg)
-			fmt.Println("Api changed from ", app.GetOldPipedApi(), " to ", app.GetPipedApi())
-		} else {
-			fmt.Println("Run into Error:", "No arguments")
-		}
+		modifyApi(arg)
 
 	case "checkApi":
 		fmt.Println("Piped Api: ", app.GetPipedApi())
 
 	case "listApi":
-		apiList, err := app.GetPipedInstanceList()
-		if err != nil {
-			fmt.Println("Error in fetching Instance list: ", err)
-		} else {
-			for i, inst := range apiList {
-				fmt.Printf("%-2d - %s\n", i, inst)
-			}
-		}
+		displayApiList()
 
 	case "randApi":
-		apiList, err := app.GetPipedInstanceList()
-		if err != nil {
-			fmt.Println("Error in fetching Instance list: ", err)
-		} else {
-			randIndex := rand.Intn(len(apiList))
-			app.SetPipedApi(apiList[randIndex].ApiUrl)
-		}
+		modifyApiRandom()
 
 	case "version":
-		fmt.Println("Ludo version: ", app.Version)
-		fmt.Println("Api: ", app.GetPipedApi())
-		fmt.Println(app.Info())
+		displayVersion()
 
 	case "help":
 		showHelp()
@@ -244,6 +128,186 @@ func runCommand(command string) bool {
 	return exitSig
 }
 
+//////////////////////
+// Helper functions //
+//////////////////////
+
+func displayVersion() {
+	fmt.Println("Ludo version: ", app.Version)
+	fmt.Println("Api: ", app.GetPipedApi())
+	fmt.Println(app.Info())
+}
+
+func modifyApiRandom() {
+	apiList, err := app.GetPipedInstanceList()
+	if err != nil {
+		fmt.Println("Error in fetching Instance list: ", err)
+	} else {
+		randIndex := rand.Intn(len(apiList))
+		app.SetPipedApi(apiList[randIndex].ApiUrl)
+	}
+}
+
+func displayApiList() {
+	apiList, err := app.GetPipedInstanceList()
+	if err != nil {
+		fmt.Println("Error in fetching Instance list: ", err)
+	} else {
+		for i, inst := range apiList {
+			fmt.Printf("%-2d - %s\n", i, inst)
+		}
+	}
+}
+
+func modifyApi(arg string) {
+	if arg != "" {
+		app.SetPipedApi(arg)
+		fmt.Println("Api changed from ", app.GetOldPipedApi(), " to ", app.GetPipedApi())
+	} else {
+		fmt.Println("Run into Error:", "No arguments")
+	}
+}
+
+func resetPlayer() {
+	err := vlcPlayer.ResetPlayer()
+	checkErr(err)
+}
+
+func audioRewind(arg string) {
+	duration := defaultForwardRewind
+	if arg != "" {
+		var err error
+		duration, err = strconv.Atoi(arg)
+		checkErr(err)
+	}
+	err := vlcPlayer.RewindBySeconds(duration)
+	checkErr(err)
+}
+
+func audioForward(arg string) {
+	duration := defaultForwardRewind
+	if arg != "" {
+		var err error
+		duration, err = strconv.Atoi(arg)
+		checkErr(err)
+	}
+	err := vlcPlayer.ForwardBySeconds(duration)
+	checkErr(err)
+}
+
+func removeAllIndex(arg string) {
+	trackIndex := vlcPlayer.GetQueueIndex() + 1
+	if arg != "" {
+		var err error
+		trackIndex, err = strconv.Atoi(arg)
+		checkErr(err)
+		trackIndex -= 1
+	}
+
+	err := vlcPlayer.RemoveAllAudioFromIndex(trackIndex)
+	checkErr(err)
+}
+
+func removeIndex(arg string) {
+	trackIndex := len(vlcPlayer.GetQueue()) - 1
+	if arg != "" {
+		var err error
+		trackIndex, err = strconv.Atoi(arg)
+		checkErr(err)
+		trackIndex -= 1
+	}
+
+	err := vlcPlayer.RemoveAudioFromIndex(trackIndex)
+	checkErr(err)
+}
+
+func skipIndex(arg string) {
+	trackIndex := vlcPlayer.GetQueueIndex() + 1
+	if arg != "" {
+		var err error
+		trackIndex, err = strconv.Atoi(arg)
+		checkErr(err)
+	}
+
+	err := vlcPlayer.SkipToIndex(trackIndex)
+	checkErr(err)
+}
+
+func skipPrevious() {
+	err := vlcPlayer.SkipToPrevious()
+	checkErr(err)
+}
+
+func skipNext() {
+	err := vlcPlayer.SkipToNext()
+	checkErr(err)
+}
+
+func displayCurrentSong() {
+	audState := vlcPlayer.GetAudioState()
+	currPos, totPos := (&audState).GetPositionDetails()
+
+	scale := len(audState.String())
+
+	if totPos > currPos {
+		scaledCurrPos := int(math.Round((float64(currPos) / float64(totPos)) * float64(scale)))
+		restPosition := scale - scaledCurrPos
+
+		navMsg := strings.Repeat(">", scaledCurrPos) + strings.Repeat("-", restPosition)
+		fmt.Println(navMsg)
+	}
+
+	fmt.Println(&audState)
+}
+
+func displayQueue() {
+	audList := vlcPlayer.GetQueue()
+	qIndex := vlcPlayer.GetQueueIndex()
+
+	for i, audio := range audList {
+		indexMsg := strconv.Itoa(i + 1)
+		if qIndex == i {
+			indexMsg = "**" + indexMsg
+		}
+		fmt.Println(indexMsg, " - ", safeTruncString(audio.Title, 50), ", ", safeTruncString(audio.Uploader, 50))
+	}
+}
+
+func radioPlay(arg string) {
+	if arg != "" {
+		audio, err := app.GetYtSong(arg)
+		checkErr(err)
+
+		err = vlcPlayer.ResetPlayer()
+		checkErr(err)
+
+		vlcPlayer.AppendAudio(audio)
+
+		go func() {
+			audioList, err := app.GetYtRadioList(audio.YtId, 10, true, true)
+			checkErr(err)
+
+			for _, audio := range *audioList {
+				vlcPlayer.AppendAudio(&audio)
+			}
+		}()
+
+	} else {
+		fmt.Println("Run into Error:", "No arguments")
+	}
+	vlcPlayer.StartPlayback()
+}
+
+func appendPlay(arg string) {
+	if arg != "" {
+		audio, err := app.GetSong(arg, false)
+		checkErr(err)
+
+		vlcPlayer.AppendAudio(audio)
+	}
+	vlcPlayer.StartPlayback()
+}
+
 func showHelp() {
 	var keys []string
 	for key := range commands {
@@ -257,6 +321,17 @@ func showHelp() {
 		info := commands[key]
 		fmt.Printf("%-20s - %s\n", cmd, info)
 	}
+}
+
+func parseCommand(command string) (string, string) {
+	cmdList := strings.Split(command, " ")
+	command = cmdList[0]
+	arg := ""
+	if len(cmdList) > 1 {
+		arg = strings.Join(cmdList[1:], " ")
+	}
+
+	return command, arg
 }
 
 func checkErr(err error) {

@@ -39,11 +39,16 @@ func GetYtSong(songName string) (*AudioDetails, error) {
 	return &audio, nil
 }
 
-func GetYtRadioList(songName string, radioLen int, skipFirst bool) (*[]AudioDetails, error) {
-
-	musicId, err := GetYtMusicId(songName)
-	if err != nil {
-		return nil, err
+func GetYtRadioList(searchString string, radioLen int, skipFirst bool, isVideoID bool) (*[]AudioDetails, error) {
+	var musicId string
+	if isVideoID {
+		musicId = searchString
+	} else {
+		var err error
+		musicId, err = GetYtMusicId(searchString)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	audioBasicList, err := GetYtPlaylist(musicId)
