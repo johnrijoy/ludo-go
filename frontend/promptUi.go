@@ -7,7 +7,6 @@ import (
 	"math"
 	"math/rand"
 	"os"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -18,26 +17,26 @@ var vlcPlayer app.VlcPlayer
 
 const defaultForwardRewind = 10
 
-var commands = map[string]string{
-	"00,play,add":       "play the song | play <song name>",
-	"01,radio":          "start radio for song | radio <song name>",
-	"02,pause,resume,p": "toggle pause/resume",
-	"03,showq,q":        "display song queue",
-	"04,curr,c":         "display current song",
-	"05,skipn,n":        "skip to next song",
-	"06,skipb,b":        "skip to previous song",
-	"07,skip":           "skip to the specified index, default is 1 | skip <index>",
-	"08,remove,rem":     "remove song at specified index, default is last | remove <index>",
-	"09,removeAll,reml": "remove all songs stating from at specified index, default is current+1 | removeAll <index>",
-	"10,forward,f":      "forwads playback by 10s **",
-	"11,rewind,r":       "reqinds playback by 10s **",
-	"12,stop":           "resets the player",
-	"13,checkApi":       "check the current piped api",
-	"14,setApi":         "set new piped api | setApi <piped api>",
-	"15,listApi":        "display all available instances",
-	"16,randApi":        "randomly select an piped instance",
-	"17,version":        "display application details",
-	"18,quit":           "quit application",
+var commands = []string{
+	"play,add-play the song | play <song name>",
+	"radio-start radio for song | radio <song name>",
+	"pause,resume,p-toggle pause/resume",
+	"showq,q-display song queue",
+	"curr,c-display current song",
+	"skipn,n-skip to next song",
+	"skipb,b-skip to previous song",
+	"skip-skip to the specified index, default is 1 | skip <index>",
+	"remove,rem-remove song at specified index, default is last | remove <index>",
+	"removeAll,reml-remove all songs stating from at specified index, default is current+1 | removeAll <index>",
+	"forward,f-forwads playback by 10s **",
+	"rewind,r-reqinds playback by 10s **",
+	"stop-resets the player",
+	"checkApi-check the current piped api",
+	"setApi-set new piped api | setApi <piped api>",
+	"listApi-display all available instances",
+	"randApi-randomly select an piped instance",
+	"version-display application details",
+	"quit-quit application",
 }
 
 func RunPrompt() {
@@ -48,11 +47,15 @@ func RunPrompt() {
 	checkErr(err)
 	defer vlcPlayer.ClosePlayer()
 
+	showStartupMessage()
+
 	for !exitSig {
 		command := StringPrompt(">>")
 
 		exitSig = runCommand(command)
 	}
+
+	fmt.Println("Exiting player...")
 }
 
 func runCommand(command string) bool {
@@ -118,7 +121,6 @@ func runCommand(command string) bool {
 		showHelp()
 
 	case "quit":
-		fmt.Println("Exiting player...")
 		exitSig = true
 
 	default:
@@ -308,18 +310,20 @@ func appendPlay(arg string) {
 	vlcPlayer.StartPlayback()
 }
 
-func showHelp() {
-	var keys []string
-	for key := range commands {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
+func showStartupMessage() {
+	fmt.Println("=== LUDO GO ===")
+	fmt.Println("Welcome to LudoGo")
+	fmt.Println("To start listening, enter \"play <song name>\"")
+	fmt.Println("To show help, enter \"help\"")
+}
 
-	for _, key := range keys {
-		cmd := strings.Join(strings.Split(key, ",")[1:], ", ")
-		//info := strings.Split(commands[key], " | ")
-		info := commands[key]
-		fmt.Printf("%-20s - %s\n", cmd, info)
+func showHelp() {
+	for _, val := range commands {
+		splitVal := strings.Split(val, "-")
+		cmd, helpMsg := splitVal[0], splitVal[1]
+		cmd = strings.ReplaceAll(cmd, ",", ", ")
+
+		fmt.Printf("%-20s - %s\n", cmd, helpMsg)
 	}
 }
 
