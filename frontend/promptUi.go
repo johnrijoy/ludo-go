@@ -19,25 +19,25 @@ var vlcPlayer app.VlcPlayer
 const defaultForwardRewind = 10
 
 var commands = map[string]string{
-	"0,play,add":       "play the song | play <song name>",
-	"1,radio":          "start radio for song | radio <song name>",
-	"2,pause,resume,p": "toggle pause/resume",
-	"3,showq,q":        "display song queue",
-	"4,curr,c":         "display current song",
-	"5,skipn,n":        "skip to next song",
-	"6,skipb,b":        "skip to previous song",
-	"7,skip":           "skip to the specified index, default is 1 | skip <index>",
-	"8,remove,rem":     "remove song at specified index, default is last | remove <index>",
-	"9,removeAll,reml": "remove all songs stating from at specified index, default is current+1 | removeAll <index>",
-	"10,forward,f":     "forwads playback by 10s",
-	"11,rewind,r":      "reqinds playback by 10s",
-	"12,stop":          "resets the player",
-	"13,checkApi":      "check the current piped api",
-	"14,setApi":        "set new piped api | setApi <piped api>",
-	"15,listApi":       "display all available instances",
-	"16,randApi":       "randomly select an piped instance",
-	"17,version":       "display application details",
-	"18,quit":          "quit application",
+	"00,play,add":       "play the song | play <song name>",
+	"01,radio":          "start radio for song | radio <song name>",
+	"02,pause,resume,p": "toggle pause/resume",
+	"03,showq,q":        "display song queue",
+	"04,curr,c":         "display current song",
+	"05,skipn,n":        "skip to next song",
+	"06,skipb,b":        "skip to previous song",
+	"07,skip":           "skip to the specified index, default is 1 | skip <index>",
+	"08,remove,rem":     "remove song at specified index, default is last | remove <index>",
+	"09,removeAll,reml": "remove all songs stating from at specified index, default is current+1 | removeAll <index>",
+	"10,forward,f":      "forwads playback by 10s **",
+	"11,rewind,r":       "reqinds playback by 10s **",
+	"12,stop":           "resets the player",
+	"13,checkApi":       "check the current piped api",
+	"14,setApi":         "set new piped api | setApi <piped api>",
+	"15,listApi":        "display all available instances",
+	"16,randApi":        "randomly select an piped instance",
+	"17,version":        "display application details",
+	"18,quit":           "quit application",
 }
 
 func RunPrompt() {
@@ -247,7 +247,7 @@ func displayCurrentSong() {
 	audState := vlcPlayer.GetAudioState()
 	currPos, totPos := (&audState).GetPositionDetails()
 
-	scale := len(audState.String())
+	scale := len((&audState).String())
 
 	if totPos > currPos {
 		scaledCurrPos := int(math.Round((float64(currPos) / float64(totPos)) * float64(scale)))
