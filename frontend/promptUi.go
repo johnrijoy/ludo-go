@@ -19,6 +19,7 @@ const defaultForwardRewind = 10
 
 var commands = []string{
 	"play,add-play the song | play <song name>",
+	"search,s-search the song and display search result | search <song name>",
 	"radio-start radio for song | radio <song name>",
 	"pause,resume,p-toggle pause/resume",
 	"showq,q-display song queue",
@@ -65,6 +66,9 @@ func runCommand(command string) bool {
 	switch command {
 	case "play", "add":
 		appendPlay(arg)
+
+	case "search", "s":
+		searchPlay(arg)
 
 	case "radio":
 		radioPlay(arg)
@@ -130,9 +134,7 @@ func runCommand(command string) bool {
 	return exitSig
 }
 
-//////////////////////
-// Helper functions //
-//////////////////////
+// Commands //
 
 func displayVersion() {
 	fmt.Println("Ludo version: ", app.Version)
@@ -277,7 +279,7 @@ func displayQueue() {
 
 func radioPlay(arg string) {
 	if arg != "" {
-		audio, err := app.GetYtSong(arg)
+		audio, err := app.GetYtSong(arg, false)
 		checkErr(err)
 
 		err = vlcPlayer.ResetPlayer()
@@ -286,7 +288,7 @@ func radioPlay(arg string) {
 		vlcPlayer.AppendAudio(audio)
 
 		go func() {
-			audioList, err := app.GetYtRadioList(audio.YtId, 10, true, true)
+			audioList, err := app.GetYtRadioList(audio.YtId, true, 1, 10)
 			checkErr(err)
 
 			for _, audio := range *audioList {
@@ -302,12 +304,61 @@ func radioPlay(arg string) {
 
 func appendPlay(arg string) {
 	if arg != "" {
-		audio, err := app.GetSong(arg, false)
+		audio, err := app.GetPipedSong(arg, false)
 		checkErr(err)
 
 		vlcPlayer.AppendAudio(audio)
 	}
 	vlcPlayer.StartPlayback()
+}
+
+func searchPlay(arg string) {
+	if arg == "" {
+		fmt.Println("Please enter a search query")
+		fmt.Println()
+		return
+	}
+
+	audioBasicList, err := app.SearchPipedSong(arg, 0, 10)
+	checkErr(err)
+
+	for i, audio := range *audioBasicList {
+		fmt.Printf("%-2d - %-50s | %-20s | %s\n", i+1, safeTruncString(audio.Title, 50), safeTruncString(audio.Uploader, 20), audio.GetFormattedDuration())
+	}
+
+	fmt.Println("Enter index number (q to escape): ")
+	cmd := StringPrompt(":> ")
+
+	if cmd == "q" {
+		fmt.Println("exiting search...")
+		return
+	}
+	index, err := strconv.Atoi(cmd)
+	if err != nil {
+		fmt.Println("Error: Please enter a number to play song or q to exit search")
+		return
+	}
+
+	index -= 1
+
+	if index < 0 || index >= len(*audioBasicList) {
+		fmt.Println("Error: Please enter a valid number")
+		return
+	}
+
+	audioBasic := (*audioBasicList)[index]
+
+	audio, err := app.GetPipedSong(audioBasic.YtId, true)
+	if displayErr(err) {
+		return
+	}
+
+	err = vlcPlayer.AppendAudio(audio)
+	displayErr(err)
+
+	if !vlcPlayer.IsPlaying() {
+		vlcPlayer.StartPlayback()
+	}
 }
 
 func showStartupMessage() {
@@ -327,6 +378,10 @@ func showHelp() {
 	}
 }
 
+//////////////////////
+// Helper functions //
+//////////////////////
+
 func parseCommand(command string) (string, string) {
 	cmdList := strings.Split(command, " ")
 	command = cmdList[0]
@@ -344,6 +399,15 @@ func checkErr(err error) {
 		vlcPlayer.ClosePlayer()
 		os.Exit(1)
 	}
+}
+
+func displayErr(err error) bool {
+	if err != nil {
+		fmt.Println("Run into Error: ", err)
+		return true
+	}
+
+	return false
 }
 
 func safeTruncString(label string, max int) string {

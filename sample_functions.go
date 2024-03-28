@@ -59,7 +59,7 @@ func playMusicVlc2(songName string) {
 	// target := musicSearch("Hello")
 	// playMusicVlc(target)
 
-	audio, err := app.GetSong(songName, false)
+	audio, err := app.GetPipedSong(songName, false)
 	checkErr(err)
 
 	log.Printf("%s\n", audio)
@@ -92,7 +92,7 @@ func playMusicVlc3(songList ...string) {
 		// target := musicSearch("Hello")
 		// playMusicVlc(target)
 
-		audio, err := app.GetSong(songName, false)
+		audio, err := app.GetPipedSong(songName, false)
 		checkErr(err)
 
 		log.Printf("%s\n", audio)
@@ -110,7 +110,7 @@ func playMusicVlc3(songList ...string) {
 }
 
 func checkPiped(searchString string) {
-	audio, err := app.GetSong(searchString, true)
+	audio, err := app.GetPipedSong(searchString, true)
 	checkErr(err)
 
 	fmt.Println("selected song: ", audio)
@@ -141,12 +141,12 @@ func checkYtPlaylist(search string) {
 	}
 	track := result.Tracks[0]
 
-	audioList, err := app.GetYtPlaylist(track.VideoID)
+	audioList, err := app.GetYtRadioList(track.VideoID, true, 0, 10)
 	if err != nil {
 		checkErr(err)
 	}
 
-	for _, audio := range audioList {
+	for _, audio := range *audioList {
 		fmt.Println(&audio)
 	}
 }

@@ -89,3 +89,19 @@ func GetPipedInstanceList() ([]PipedInstance, error) {
 	log.Println("Instance loaded")
 	return apiList, nil
 }
+
+// Helpers //
+
+func trimList[T any](inputList []T, offset int, limit int) []T {
+	outputList := inputList
+
+	if offset > 0 && offset < len(inputList) {
+		outputList = outputList[offset:]
+	}
+
+	if limit > 0 && offset >= 0 && limit < len(inputList)-offset {
+		outputList = outputList[:limit]
+	}
+
+	return outputList
+}
