@@ -9,11 +9,13 @@ import (
 	"github.com/fatih/color"
 )
 
-var Blue = color.New(color.FgBlue).SprintfFunc()
-var Red = color.New(color.FgRed).SprintfFunc()
-var Green = color.New(color.FgGreen).SprintfFunc()
-var GreenH = color.New(color.FgHiGreen).SprintfFunc()
-var Magenta = color.New(color.FgHiMagenta).SprintfFunc()
+var Blue = color.New(color.FgHiBlue).SprintFunc()
+var Red = color.New(color.FgRed).SprintFunc()
+var Green = color.New(color.FgGreen).SprintFunc()
+var GreenH = color.New(color.FgHiGreen).SprintFunc()
+var Magenta = color.New(color.FgHiMagenta).SprintFunc()
+var Gray = color.New(color.FgWhite, color.Faint).SprintFunc()
+var Yellow = color.New(color.FgYellow).SprintFunc()
 
 func StringPrompt(label string) string {
 	var s string
@@ -26,4 +28,20 @@ func StringPrompt(label string) string {
 		}
 	}
 	return strings.TrimSpace(s)
+}
+
+func silentLog(label ...interface{}) {
+	fmt.Println(Gray(label...))
+}
+
+func warnLog(label ...interface{}) {
+	fmt.Println(Yellow(label...))
+}
+
+func errorLog(label ...interface{}) {
+	prefix := Red("Error:")
+	x := make([]interface{}, 0)
+	x = append(x, prefix)
+	x = append(x, label...)
+	fmt.Println(x...)
 }

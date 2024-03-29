@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"strings"
 
 	vlc "github.com/adrg/libvlc-go/v3"
 )
@@ -39,15 +38,9 @@ var playerStateMap = map[int]string{
 }
 
 // display information regarding libVlc version
-func Info() string {
-	versionInfo := vlc.Version()
+func Info() vlc.VersionInfo {
 
-	var sb strings.Builder
-
-	sb.WriteString(fmt.Sprintln("libVlc Binding Version: ", versionInfo.String()))
-	sb.WriteString(fmt.Sprint("Vlc Runtime Version: ", versionInfo.Changeset()))
-
-	return sb.String()
+	return vlc.Version()
 }
 
 // Creates and initialises a new vlc player
