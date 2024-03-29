@@ -403,10 +403,10 @@ func searchPlay(arg string) {
 }
 
 func showStartupMessage() {
-	fmt.Println("=== LUDO GO ===")
-	fmt.Println("Welcome to LudoGo")
-	fmt.Println("To start listening, enter \"play <song name>\"")
-	fmt.Println("To show help, enter \"help\"")
+	fmt.Println(Blue("==="), Magenta("LUDO GO"), Blue("==="))
+	fmt.Println("Welcome to", Magenta("LudoGo"))
+	fmt.Println("To start listening, enter " + Green("play <song name>"))
+	fmt.Println("To show help, enter " + Green("help"))
 }
 
 func showHelp() {
@@ -415,7 +415,7 @@ func showHelp() {
 		cmd, helpMsg := splitVal[0], splitVal[1]
 		cmd = strings.ReplaceAll(cmd, ",", ", ")
 
-		fmt.Printf("%-20s - %s\n", cmd, helpMsg)
+		fmt.Printf("%-40s - %s\n", GreenH(cmd), helpMsg)
 	}
 }
 
