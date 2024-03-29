@@ -156,11 +156,35 @@ func displayApiList() {
 	apiList, err := app.GetPipedInstanceList()
 	if err != nil {
 		fmt.Println("Error in fetching Instance list: ", err)
-	} else {
-		for i, inst := range apiList {
-			fmt.Printf("%-2d - %s\n", i, inst)
-		}
+		return
 	}
+
+	for i, inst := range apiList {
+		fmt.Printf("%-2d - %s\n", i+1, inst)
+	}
+
+	fmt.Println("Enter index number to change api (q to escape): ")
+	cmd := StringPrompt(":> ")
+
+	if cmd == "q" {
+		fmt.Println("exiting api list...")
+		return
+	}
+	index, err := strconv.Atoi(cmd)
+	if err != nil {
+		fmt.Println("Error: Please enter a number to play song or q to exit search")
+		return
+	}
+
+	index -= 1
+
+	if index < 0 || index >= len(apiList) {
+		fmt.Println("Error: Please enter a valid number")
+		return
+	}
+
+	newApi := apiList[index].ApiUrl
+	app.SetPipedApi(newApi)
 }
 
 func modifyApi(arg string) {
@@ -248,6 +272,14 @@ func skipNext() {
 }
 
 func displayCurrentSong() {
+	if vlcPlayer.IsPlaying() {
+		fmt.Println("Now playing...")
+	} else if vlcPlayer.CheckMediaError() {
+		fmt.Println("Error in playing media")
+	} else {
+		fmt.Println(vlcPlayer.FetchPlayerState())
+	}
+
 	audState := vlcPlayer.GetAudioState()
 	currPos, totPos := (&audState).GetPositionDetails()
 
@@ -279,13 +311,22 @@ func displayQueue() {
 
 func radioPlay(arg string) {
 	if arg != "" {
-		audio, err := app.GetYtSong(arg, false)
-		checkErr(err)
+		var audio *app.AudioDetails
+		if arg == "." {
+			audioD := vlcPlayer.GetAudioState().AudioDetails
+			audio = &audioD
+			removeAllIndex("")
+		} else {
+			var err error
+			audio, err = app.GetYtSong(arg, false)
+			checkErr(err)
 
-		err = vlcPlayer.ResetPlayer()
-		checkErr(err)
+			err = vlcPlayer.ResetPlayer()
+			checkErr(err)
 
-		vlcPlayer.AppendAudio(audio)
+			vlcPlayer.AppendAudio(audio)
+			vlcPlayer.StartPlayback()
+		}
 
 		go func() {
 			audioList, err := app.GetYtRadioList(audio.YtId, true, 1, 10)
@@ -299,7 +340,6 @@ func radioPlay(arg string) {
 	} else {
 		fmt.Println("Run into Error:", "No arguments")
 	}
-	vlcPlayer.StartPlayback()
 }
 
 func appendPlay(arg string) {
@@ -309,7 +349,8 @@ func appendPlay(arg string) {
 
 		vlcPlayer.AppendAudio(audio)
 	}
-	vlcPlayer.StartPlayback()
+	err := vlcPlayer.StartPlayback()
+	checkErr(err)
 }
 
 func searchPlay(arg string) {

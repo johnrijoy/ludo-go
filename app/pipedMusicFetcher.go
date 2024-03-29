@@ -42,7 +42,7 @@ func getPipedApiMusicId(search string) (string, error) {
 	return "", errors.New("could not fetch music Id")
 }
 
-func getPipedApiSong(musicId string, loadRelated bool) (AudioDetails, error) {
+func getPipedApiAudioStream(musicId string, loadRelated bool) (AudioDetails, error) {
 	target := GetPipedApi() + "/streams/" + musicId
 
 	log.Println("target: ", target)
@@ -83,6 +83,10 @@ func getPipedApiSong(musicId string, loadRelated bool) (AudioDetails, error) {
 	}
 	if loadRelated {
 		audio.RelatedAudioList = getPipedApiRelatedSongs(response)
+	}
+
+	if !audio.validate() {
+		return audio, errors.New("error fetching audio stream from piped api")
 	}
 
 	return audio, nil

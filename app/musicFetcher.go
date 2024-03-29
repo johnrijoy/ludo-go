@@ -23,7 +23,7 @@ func GetPipedSong(searchString string, isVideoID bool) (*AudioDetails, error) {
 		return nil, err
 	}
 
-	audio, err := getPipedApiSong(musicId, false)
+	audio, err := getPipedApiAudioStream(musicId, false)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func GetPipedRadioList(searchString string, isVideoID bool, offset int, limit in
 		return nil, err
 	}
 
-	audioDetails, err := getPipedApiSong(musicId, true)
+	audioDetails, err := getPipedApiAudioStream(musicId, true)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func GetPipedRadioList(searchString string, isVideoID bool, offset int, limit in
 
 	for i := 0; i < len(audioBasicList); i++ {
 
-		audio, err := getPipedApiSong(audioBasicList[i].YtId, false)
+		audio, err := getPipedApiAudioStream(audioBasicList[i].YtId, false)
 		if err == nil {
 			audioList = append(audioList, audio)
 		}
@@ -74,7 +74,7 @@ func GetYtSong(searchString string, isVideoID bool) (*AudioDetails, error) {
 		return nil, err
 	}
 
-	audio, err := getPipedApiSong(musicId, false)
+	audio, err := getPipedApiAudioStream(musicId, false)
 	if err != nil {
 		return nil, err
 	}
@@ -102,13 +102,11 @@ func GetYtRadioList(searchString string, isVideoID bool, offset int, limit int) 
 		fetcherLog.Println("[GetRadioList] ", audio)
 	}
 
-	for i := 0; i < len(audioBasicList); i++ {
-
-		audio, err := getPipedApiSong(audioBasicList[i].YtId, false)
+	for _, audioBasic := range audioBasicList {
+		audio, err := getPipedApiAudioStream(audioBasic.YtId, false)
 		if err == nil {
 			audioList = append(audioList, audio)
 		}
-
 	}
 
 	return &audioList, nil

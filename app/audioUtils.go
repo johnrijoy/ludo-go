@@ -28,12 +28,28 @@ func (audioBasic *AudioBasic) String() string {
 	return formattedAudioDetails
 }
 
+func (audioBasic *AudioBasic) validate() bool {
+	isValid := false
+	if audioBasic.YtId != "" && audioBasic.Title != "" {
+		isValid = true
+	}
+	return isValid
+}
+
 // AudioDetails
 
 type AudioDetails struct {
 	AudioBasic
 	AudioStreamUrl   string
 	RelatedAudioList []AudioBasic
+}
+
+func (audioDetails *AudioDetails) validate() bool {
+	isValid := false
+	if audioDetails.AudioStreamUrl != "" {
+		isValid = true
+	}
+	return isValid
 }
 
 // AudioState
@@ -69,3 +85,5 @@ func (audioState *AudioState) String() string {
 func (audioState *AudioState) GetPositionDetails() (int, int) {
 	return audioState.currentPos, audioState.totalLength
 }
+
+// Helpers

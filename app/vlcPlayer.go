@@ -11,12 +11,13 @@ import (
 )
 
 type VlcPlayer struct {
-	player     *vlc.ListPlayer
-	mediaList  *vlc.MediaList
-	audioQueue []AudioDetails
-	audioState AudioState
-	eventIDs   EventIdList
-	Quit       chan struct{}
+	player       *vlc.ListPlayer
+	mediaList    *vlc.MediaList
+	audioQueue   []AudioDetails
+	audioState   AudioState
+	eventIDs     EventIdList
+	Quit         chan struct{}
+	isMediaError bool
 }
 
 type EventIdList struct {
@@ -24,7 +25,18 @@ type EventIdList struct {
 	listPlayer []vlc.EventID
 }
 
-var vlcLog = log.New(io.Discard, "vlc :", log.LstdFlags)
+var vlcLog = log.New(io.Discard, "vlc: ", log.LstdFlags)
+
+var playerStateMap = map[int]string{
+	0: "Nothing Special",
+	1: "Media Opening",
+	2: "Media Buffering",
+	3: "Media Playing",
+	4: "Media Paused",
+	5: "Media Stopped",
+	6: "Media Ended",
+	7: "Media Error",
+}
 
 // display information regarding libVlc version
 func Info() string {
@@ -65,6 +77,7 @@ func (vlcPlayer *VlcPlayer) InitPlayer() error {
 	vlcPlayer.audioQueue = make([]AudioDetails, 0)
 	vlcPlayer.audioState = AudioState{}
 	vlcPlayer.Quit = make(chan struct{})
+	vlcPlayer.isMediaError = false
 	vlcPlayer.audioState.currentTrackIndex = -1
 
 	vlcPlayer.attachEvents()
@@ -224,16 +237,20 @@ func (vlcPlayer *VlcPlayer) GetQueue() []AudioDetails {
 	return vlcPlayer.audioQueue
 }
 
-func (vlcPlayer *VlcPlayer) FetchPlayerState() vlc.MediaState {
+func (vlcPlayer *VlcPlayer) FetchPlayerState() string {
 	vlcLog.Println("Getting player state")
 	mediaState, err := vlcPlayer.player.MediaState()
 	if err != nil {
-		return 99
+		return "Error"
 	}
 
 	vlcLog.Printf("%v", mediaState)
 
-	return mediaState
+	return playerStateMap[int(mediaState)]
+}
+
+func (vlcPlayer *VlcPlayer) CheckMediaError() bool {
+	return vlcPlayer.isMediaError
 }
 
 ///////////////////
@@ -455,6 +472,10 @@ func (vlcPlayer *VlcPlayer) attachEvents() error {
 		vlcPlayer.audioState.totalLength = totPos / 1000
 
 		//vlcLog.Println(vlcPlayer.audioState.String())
+
+		if vlcPlayer.isMediaError {
+			vlcPlayer.isMediaError = false
+		}
 	}
 
 	mediaListEndedCallback := func(event vlc.Event, userData interface{}) {
@@ -467,6 +488,26 @@ func (vlcPlayer *VlcPlayer) attachEvents() error {
 		}
 
 		close(vlcPlayer.Quit)
+	}
+
+	encounteredErrorCallback := func(event vlc.Event, userData interface{}) {
+		vlcLog.Println("List player encountered error")
+
+		vlcPlayer, ok := userData.(*VlcPlayer)
+		if !ok {
+			vlcLog.Println("!! [encounteredErrorCallback] could not vlc user instance")
+			return
+		}
+
+		mediaState, err := vlcPlayer.player.MediaState()
+		if err != nil {
+			vlcLog.Println("!! [encounteredErrorCallback] error: ", err)
+			return
+		}
+
+		vlcLog.Println("MediaState: ", playerStateMap[int(mediaState)])
+
+		vlcPlayer.isMediaError = true
 	}
 
 	player, err := vlcPlayer.player.Player()
@@ -501,8 +542,13 @@ func (vlcPlayer *VlcPlayer) attachEvents() error {
 		return err
 	}
 
+	eventID4, err := manager.Attach(vlc.MediaPlayerEncounteredError, encounteredErrorCallback, vlcPlayer)
+	if err != nil {
+		return err
+	}
+
 	var playerEventID []vlc.EventID
-	playerEventID = append(playerEventID, eventID1, eventID2)
+	playerEventID = append(playerEventID, eventID1, eventID2, eventID4)
 	vlcPlayer.eventIDs.player = playerEventID
 
 	var lPlayerEventID []vlc.EventID
