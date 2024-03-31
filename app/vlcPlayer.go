@@ -15,7 +15,6 @@ type VlcPlayer struct {
 	audioQueue   []AudioDetails
 	audioState   AudioState
 	eventIDs     EventIdList
-	Quit         chan struct{}
 	isMediaError bool
 }
 
@@ -69,7 +68,6 @@ func (vlcPlayer *VlcPlayer) InitPlayer() error {
 	vlcPlayer.player = player
 	vlcPlayer.audioQueue = make([]AudioDetails, 0)
 	vlcPlayer.audioState = AudioState{}
-	vlcPlayer.Quit = make(chan struct{})
 	vlcPlayer.isMediaError = false
 	vlcPlayer.audioState.currentTrackIndex = -1
 
@@ -471,18 +469,6 @@ func (vlcPlayer *VlcPlayer) attachEvents() error {
 		}
 	}
 
-	mediaListEndedCallback := func(event vlc.Event, userData interface{}) {
-		vlcLog.Println("Media List Ended Event")
-
-		vlcPlayer, ok := userData.(*VlcPlayer)
-		if !ok {
-			vlcLog.Println("!! [mediaListEndedCallback] no vlc data")
-			return
-		}
-
-		close(vlcPlayer.Quit)
-	}
-
 	encounteredErrorCallback := func(event vlc.Event, userData interface{}) {
 		vlcLog.Println("List player encountered error")
 
@@ -514,8 +500,8 @@ func (vlcPlayer *VlcPlayer) attachEvents() error {
 		return err
 	}
 
-	// Retrieve List Player event manager.
-	manager2, err := vlcPlayer.player.EventManager()
+	// Retrieve List Player event manager. temporarily player event manager
+	_, err = vlcPlayer.player.EventManager()
 	if err != nil {
 		return err
 	}
@@ -530,22 +516,15 @@ func (vlcPlayer *VlcPlayer) attachEvents() error {
 		return err
 	}
 
-	eventID3, err := manager2.Attach(vlc.MediaListPlayerPlayed, mediaListEndedCallback, vlcPlayer)
+	eventID3, err := manager.Attach(vlc.MediaPlayerEncounteredError, encounteredErrorCallback, vlcPlayer)
 	if err != nil {
 		return err
 	}
 
-	eventID4, err := manager.Attach(vlc.MediaPlayerEncounteredError, encounteredErrorCallback, vlcPlayer)
-	if err != nil {
-		return err
-	}
-
-	var playerEventID []vlc.EventID
-	playerEventID = append(playerEventID, eventID1, eventID2, eventID4)
+	playerEventID := []vlc.EventID{eventID1, eventID2, eventID3}
 	vlcPlayer.eventIDs.player = playerEventID
 
-	var lPlayerEventID []vlc.EventID
-	lPlayerEventID = append(lPlayerEventID, eventID3)
+	lPlayerEventID := []vlc.EventID{}
 	vlcPlayer.eventIDs.listPlayer = lPlayerEventID
 
 	return nil

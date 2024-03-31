@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	vlc "github.com/adrg/libvlc-go/v3"
 	"github.com/johnrijoy/ludo-go/app"
@@ -75,7 +76,10 @@ func playMusicVlc2(songName string) {
 	vlcPlayer.AppendAudio(audio)
 	vlcPlayer.StartPlayback()
 
-	<-vlcPlayer.Quit
+	duration, err := time.ParseDuration(string(audio.Duration) + "s")
+	checkErr(err)
+
+	time.Sleep(duration)
 	log.Println("Control reached back")
 }
 
@@ -86,6 +90,7 @@ func playMusicVlc3(songList ...string) {
 	defer vlcPlayer.ClosePlayer()
 
 	log.Println("Before mediastate: {}")
+	timeInS := 0
 
 	for _, songName := range songList {
 		log.Println(songName)
@@ -101,11 +106,15 @@ func playMusicVlc3(songList ...string) {
 		//fmt.Println("{}", audio.audioStreamUrl)
 
 		vlcPlayer.AppendAudio(audio)
+
+		timeInS += audio.Duration
 	}
 
 	vlcPlayer.StartPlayback()
 
-	<-vlcPlayer.Quit
+	duration, err := time.ParseDuration(string(timeInS) + "s")
+	checkErr(err)
+	time.Sleep(time.Duration(duration))
 	log.Println("Control reached back")
 }
 
