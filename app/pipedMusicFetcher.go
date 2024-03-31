@@ -89,6 +89,9 @@ func getPipedApiAudioStream(musicId string, loadRelated bool) (AudioDetails, err
 		return audio, errors.New("error fetching audio stream from piped api")
 	}
 
+	// clean uploader name
+	audio.Uploader = strings.ReplaceAll(audio.Uploader, " - Topic", "")
+
 	return audio, nil
 }
 

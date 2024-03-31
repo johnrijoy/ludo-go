@@ -305,7 +305,7 @@ func displayQueue() {
 	qIndex := vlcPlayer.GetQueueIndex()
 
 	for i, audio := range audList {
-		msg := fmt.Sprintf("%-d - %-50s | %-50s", i+1, safeTruncString(audio.Title, 50), safeTruncString(audio.Uploader, 50))
+		msg := fmt.Sprintf("%-2d - %-50s | %-50s", i+1, safeTruncString(audio.Title, 50), safeTruncString(audio.Uploader, 50))
 		if qIndex == i {
 			msg = Magenta(msg)
 		}
