@@ -1,16 +1,28 @@
 package app
 
 import (
+	"errors"
+	"io"
+	"log"
 	"strings"
 
 	"github.com/raitonoberu/ytmusic"
 )
+
+var ytLog = log.New(io.Discard, "YT: ", log.LstdFlags|log.Lmsgprefix)
 
 func getYtMusicId(searchString string) (string, error) {
 	search := ytmusic.Search(searchString)
 	result, err := search.Next()
 	if err != nil {
 		return "", err
+	}
+
+	ytLog.Println(searchString)
+	ytLog.Println("search length-", len(result.Tracks))
+
+	if len(result.Tracks) < 1 {
+		return "", errors.New("no results for this query")
 	}
 
 	return result.Tracks[0].VideoID, nil

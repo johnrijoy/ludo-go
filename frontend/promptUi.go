@@ -164,8 +164,7 @@ func displayApiList() {
 		fmt.Printf("%-2d - %s\n", i+1, inst)
 	}
 
-	fmt.Println("Enter index number to change api (q to escape): ")
-	cmd := StringPrompt(":> ")
+	cmd := StringPrompt("> Enter index number to change api (q to escape): ")
 
 	if cmd == "q" {
 		silentLog("exiting api list...")
