@@ -1,6 +1,6 @@
 # LUDO-GO
 
-A TUI music player which can stream music as per commands. The searching and streaming is done from Piped Api. The VLC player is used for playback.
+A CLI music player which can stream music as per commands. The searching and streaming is done from Piped Api. The VLC player is used for playback.
 
 ## Features
 
