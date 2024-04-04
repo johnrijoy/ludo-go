@@ -30,7 +30,8 @@ var commands = []string{
 	"remove,rem-remove song at specified index, default is last | remove <index>",
 	"removeAll,reml-remove all songs stating from at specified index, default is current+1 | removeAll <index>",
 	"forward,f-forwads playback by 10s **",
-	"rewind,r-reqinds playback by 10s **",
+	"rewind,r-rewinds playback by 10s **",
+	"setVol,v-sets the volume by amount (0-100) | setVol <volume>",
 	"stop-resets the player",
 	"checkApi-check the current piped api",
 	"setApi-set new piped api | setApi <piped api>",
@@ -102,6 +103,9 @@ func runCommand(command string) bool {
 
 	case "rewind", "r":
 		audioRewind(arg)
+
+	case "setVol", "v":
+		modifyVolume(arg)
 
 	case "stop":
 		resetPlayer()
@@ -407,6 +411,23 @@ func searchPlay(arg string) {
 	}
 }
 
+func modifyVolume(arg string) {
+
+	if arg == "" {
+		warnLog("No volume given")
+		return
+	}
+	vol, err := strconv.Atoi(arg)
+	if displayErr(err) {
+		return
+	}
+
+	err = vlcPlayer.SetVol(vol)
+	if !displayErr(err) {
+		fmt.Println("volume set:", Green(vol))
+	}
+}
+
 func showStartupMessage() {
 	fmt.Println(Blue("==="), Magenta("LUDO GO"), Blue("==="))
 	fmt.Println("Welcome to", Magenta("LudoGo"))
@@ -417,8 +438,15 @@ func showStartupMessage() {
 func showHelp() {
 	for _, val := range commands {
 		splitVal := strings.Split(val, "-")
-		cmd, helpMsg := splitVal[0], splitVal[1]
+		cmd, help := splitVal[0], strings.Join(splitVal[1:], "-")
 		cmd = strings.ReplaceAll(cmd, ",", ", ")
+		helpSplit := strings.Split(help, "|")
+		helpMsg := helpSplit[0]
+		if len(helpSplit) > 1 {
+			helpMsg = strings.TrimSpace(strings.Join(helpSplit[0:len(helpSplit)-1], "|"))
+			usageMsg := Magenta(" | " + strings.TrimSpace(helpSplit[len(helpSplit)-1]))
+			helpMsg += usageMsg
+		}
 
 		fmt.Printf("%-40s - %s\n", GreenH(cmd), helpMsg)
 	}
