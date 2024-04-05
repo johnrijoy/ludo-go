@@ -41,6 +41,11 @@ var commands = []string{
 	"quit-quit application",
 }
 
+var configs = []string{
+	"config.piped.apiUrl-default piped api to be used",
+	"config.piped.instanceListApi-default instance list api to be used",
+}
+
 func RunPrompt() {
 	var appCtx app.AppContext
 	exitSig := false
@@ -439,20 +444,27 @@ func showStartupMessage() {
 }
 
 func showHelp() {
-	for _, val := range commands {
-		splitVal := strings.Split(val, "-")
-		cmd, help := splitVal[0], strings.Join(splitVal[1:], "-")
-		cmd = strings.ReplaceAll(cmd, ",", ", ")
-		helpSplit := strings.Split(help, "|")
-		helpMsg := helpSplit[0]
-		if len(helpSplit) > 1 {
-			helpMsg = strings.TrimSpace(strings.Join(helpSplit[0:len(helpSplit)-1], "|"))
-			usageMsg := Magenta(" | " + strings.TrimSpace(helpSplit[len(helpSplit)-1]))
-			helpMsg += usageMsg
-		}
+	displayList := func(items []string) {
+		for _, val := range items {
+			splitVal := strings.Split(val, "-")
+			cmd, help := splitVal[0], strings.Join(splitVal[1:], "-")
+			cmd = strings.ReplaceAll(cmd, ",", ", ")
+			helpSplit := strings.Split(help, "|")
+			helpMsg := helpSplit[0]
+			if len(helpSplit) > 1 {
+				helpMsg = strings.TrimSpace(strings.Join(helpSplit[0:len(helpSplit)-1], "|"))
+				usageMsg := Magenta(" | " + strings.TrimSpace(helpSplit[len(helpSplit)-1]))
+				helpMsg += usageMsg
+			}
 
-		fmt.Printf("%-40s - %s\n", GreenH(cmd), helpMsg)
+			fmt.Printf("%-40s - %s\n", Green(cmd), helpMsg)
+		}
 	}
+	fmt.Println("Commands")
+	displayList(commands)
+
+	fmt.Println("\nProperties")
+	displayList(configs)
 }
 
 //////////////////////

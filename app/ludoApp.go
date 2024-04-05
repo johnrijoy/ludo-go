@@ -46,15 +46,25 @@ func loadProperties() (*properties.Properties, error) {
 	appLog.Println(os.UserHomeDir())
 	appLog.Println(os.UserCacheDir())
 	appLog.Println(os.UserConfigDir())
+
+	// loading config path from user cache
 	localDr, _ := os.UserCacheDir()
 	ludoCfg := filepath.Join(localDr, ludoDir, ludoPropertiesFile)
 	appLog.Println(ludoCfg)
+
+	// looking for path in ENV
+	if path, ok := os.LookupEnv("LUDO_CONFIG_PATH"); ok {
+		ludoCfg = path
+	}
 
 	if _, err := os.Stat(ludoCfg); os.IsNotExist(err) {
 		appLog.Println("properties file does not exist")
 	}
 
+	// load prop file
 	prop, err := properties.LoadFile(ludoCfg, properties.UTF8)
+
+	// if does not exist, try create it
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return nil, errors.New("error in loading properties file")
@@ -68,6 +78,7 @@ func loadProperties() (*properties.Properties, error) {
 
 	}
 
+	// logging proprties loaded
 	appLog.Println("Properties loaded")
 	for _, key := range prop.Keys() {
 		appLog.Println(key, ":", prop.MustGetString(key))
