@@ -13,7 +13,10 @@ import (
 	"github.com/johnrijoy/ludo-go/app"
 )
 
-var vlcPlayer *app.VlcPlayer
+var (
+	vlcPlayer *app.VlcPlayer
+	audioDb   *app.AudioDatastore
+)
 
 const defaultForwardRewind = 10
 
@@ -33,6 +36,7 @@ var commands = []string{
 	"rewind,r-rewinds playback by 10s ** | rewind <seconds>",
 	"setVol,v-sets the volume by amount (0-100) | setVol <volume>",
 	"stop-resets the player",
+	"listSongs,ls-displays list of songs based on criteria (recent,likes,plays) | listSongs <criteria>",
 	"checkApi-check the current piped api",
 	"setApi-set new piped api | setApi <piped api>",
 	"listApi-display all available instances",
@@ -56,6 +60,7 @@ func RunPrompt() {
 	defer appCtx.Close()
 
 	vlcPlayer = appCtx.VlcPlayer()
+	audioDb = appCtx.AudioDb()
 
 	showStartupMessage()
 
@@ -117,6 +122,12 @@ func runCommand(command string) bool {
 
 	case "stop":
 		resetPlayer()
+
+	case "like":
+		likeSong(arg)
+
+	case "listSongs", "ls":
+		fetchSongList(arg)
 
 	case "setApi":
 		modifyApi(arg)
@@ -434,6 +445,49 @@ func modifyVolume(arg string) {
 	if !displayErr(err) {
 		fmt.Println("volume set:", Green(vol))
 	}
+}
+
+func fetchSongList(arg string) {
+	if arg == "" {
+		warnLog("No criteria given")
+		return
+	}
+
+	var criteria app.AudioListCriteria
+	switch arg {
+	case "recent":
+		fmt.Println("Recently Played")
+		criteria = app.RecentlyPlayed
+	case "plays":
+		fmt.Println("Most Played")
+		criteria = app.MostPlayed
+	case "likes":
+		fmt.Println("Most Liked")
+		criteria = app.MostLikes
+	}
+
+	audDocs, err := audioDb.GetAudioList(criteria, 0, 10)
+	if err != nil {
+		errorLog(err)
+	}
+
+	for i, audDoc := range audDocs {
+		fmt.Printf("%-2d - %-50s | %-20s | %20s\n", i+1, audDoc.Title, audDoc.Uploader, audDoc.GetFormattedDuration())
+	}
+}
+
+func likeSong(arg string) {
+	trackIndex := vlcPlayer.GetQueueIndex()
+	if arg != "" {
+		var err error
+		trackIndex, err = strconv.Atoi(arg)
+		displayErr(err)
+		trackIndex -= 1
+	}
+	if trackIndex < 0 || trackIndex >= len(vlcPlayer.GetQueue()) {
+		errorLog("invalid item index")
+	}
+	audioDb.UpdateLikes(vlcPlayer.GetQueue()[trackIndex].YtId)
 }
 
 func showStartupMessage() {

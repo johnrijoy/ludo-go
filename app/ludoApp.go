@@ -18,13 +18,25 @@ type AppContext struct {
 }
 
 func (app *AppContext) Init() error {
+	// Load properties file
 	props, err := loadProperties()
 	if err != nil {
 		return err
 	}
 	app.props = *props
+
+	// Set Piped config
 	setPipedConfig(props)
 
+	// Load database
+	localDr, _ := os.UserCacheDir()
+	dbPath := props.GetString(dataStoreKey, filepath.Join(localDr, ludoDir))
+
+	if err := audioDb.InitDb(dbPath); err != nil {
+		return err
+	}
+
+	// load audio player
 	if err := app.vlcPlayer.InitPlayer(); err != nil {
 		return err
 	}
@@ -35,11 +47,24 @@ func (app *AppContext) Close() error {
 	if err := app.vlcPlayer.ClosePlayer(); err != nil {
 		return err
 	}
+	localDr, _ := os.UserCacheDir()
+	dumpPath := filepath.Join(localDr, ludoDir, "dumps.json")
+
+	audioDb.db.ExportCollection(audioDocCollection, dumpPath)
+
+	if err := audioDb.CloseDb(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (app *AppContext) VlcPlayer() *VlcPlayer {
 	return &app.vlcPlayer
+}
+
+func (app *AppContext) AudioDb() *AudioDatastore {
+	return &audioDb
 }
 
 func loadProperties() (*properties.Properties, error) {
