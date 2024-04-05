@@ -6,6 +6,7 @@ require (
 	github.com/adrg/libvlc-go/v3 v3.1.5
 	github.com/fatih/color v1.16.0
 	github.com/magiconair/properties v1.8.7
+	github.com/ostafen/clover/v2 v2.0.0-alpha.3
 	github.com/raitonoberu/ytmusic v0.0.0-20240324143733-0e5780514b1d
 )
 
@@ -25,7 +26,6 @@ require (
 	github.com/klauspost/compress v1.15.9 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/ostafen/clover/v2 v2.0.0-alpha.3 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
