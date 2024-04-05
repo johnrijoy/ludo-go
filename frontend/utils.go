@@ -13,9 +13,11 @@ var Blue = color.New(color.FgHiBlue).SprintFunc()
 var Red = color.New(color.FgRed).SprintFunc()
 var Green = color.New(color.FgGreen).SprintFunc()
 var GreenH = color.New(color.FgHiGreen).SprintFunc()
+var GreenD = color.New(color.FgGreen, color.Faint).SprintFunc()
 var Magenta = color.New(color.FgHiMagenta).SprintFunc()
 var Gray = color.New(color.FgWhite, color.Faint).SprintFunc()
 var Yellow = color.New(color.FgYellow).SprintFunc()
+var Cyan = color.New(color.FgCyan).SprintFunc()
 
 func StringPrompt(label string) string {
 	var s string

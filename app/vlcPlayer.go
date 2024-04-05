@@ -77,7 +77,7 @@ func (vlcPlayer *VlcPlayer) InitPlayer() error {
 }
 
 // Stops and releases the creates vlc player
-func (vlcPlayer *VlcPlayer) ClosePlayer() {
+func (vlcPlayer *VlcPlayer) ClosePlayer() error {
 	vlcLog.Println("VLC Player closing...")
 	vlcPlayer.player.Stop()
 	vlcPlayer.mediaList.Release()
@@ -103,9 +103,10 @@ func (vlcPlayer *VlcPlayer) ClosePlayer() {
 
 	err = vlcPlayer.player.Release()
 	if err != nil {
-		vlcLog.Println(err)
+		return err
 	}
 	vlcLog.Println("VLC Player closed")
+	return nil
 }
 
 func (vlcPlayer *VlcPlayer) ResetPlayer() error {
