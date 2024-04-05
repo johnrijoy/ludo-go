@@ -13,7 +13,7 @@ import (
 	"github.com/johnrijoy/ludo-go/app"
 )
 
-var vlcPlayer app.VlcPlayer
+var vlcPlayer *app.VlcPlayer
 
 const defaultForwardRewind = 10
 
@@ -29,8 +29,8 @@ var commands = []string{
 	"skip-skip to the specified index, default is 1 | skip <index>",
 	"remove,rem-remove song at specified index, default is last | remove <index>",
 	"removeAll,reml-remove all songs stating from at specified index, default is current+1 | removeAll <index>",
-	"forward,f-forwads playback by 10s **",
-	"rewind,r-rewinds playback by 10s **",
+	"forward,f-forwads playback by 10s ** | forward <seconds>",
+	"rewind,r-rewinds playback by 10s ** | rewind <seconds>",
 	"setVol,v-sets the volume by amount (0-100) | setVol <volume>",
 	"stop-resets the player",
 	"checkApi-check the current piped api",
@@ -42,12 +42,15 @@ var commands = []string{
 }
 
 func RunPrompt() {
+	var appCtx app.AppContext
 	exitSig := false
 
 	log.SetOutput(io.Discard)
-	err := vlcPlayer.InitPlayer()
+	err := appCtx.Init()
 	handleErrExit(err)
-	defer vlcPlayer.ClosePlayer()
+	defer appCtx.Close()
+
+	vlcPlayer = appCtx.VlcPlayer()
 
 	showStartupMessage()
 
@@ -114,7 +117,7 @@ func runCommand(command string) bool {
 		modifyApi(arg)
 
 	case "checkApi":
-		fmt.Println("Piped Api: ", Green(app.GetPipedApi()))
+		fmt.Println("Piped Api: ", Green(app.Piped.GetPipedApi()))
 
 	case "listApi":
 		displayApiList()
@@ -142,23 +145,23 @@ func runCommand(command string) bool {
 
 func displayVersion() {
 	fmt.Println("Ludo version: ", Green(app.Version))
-	fmt.Println("Api: ", Green(app.GetPipedApi()))
+	fmt.Println("Api: ", Green(app.Piped.GetPipedApi()))
 	fmt.Println("libVlc Binding Version: ", Green(app.Info().String()))
 	fmt.Println("Vlc Runtime Version: ", Green(app.Info().Changeset()))
 }
 
 func modifyApiRandom() {
-	apiList, err := app.GetPipedInstanceList()
+	apiList, err := app.Piped.GetPipedInstanceList()
 	if err != nil {
 		errorLog("Error in fetching Instance list:", err)
 	} else {
 		randIndex := rand.Intn(len(apiList))
-		app.SetPipedApi(apiList[randIndex].ApiUrl)
+		app.Piped.SetPipedApi(apiList[randIndex].ApiUrl)
 	}
 }
 
 func displayApiList() {
-	apiList, err := app.GetPipedInstanceList()
+	apiList, err := app.Piped.GetPipedInstanceList()
 	if err != nil {
 		errorLog("Error in fetching Instance list:", err)
 		return
@@ -189,13 +192,13 @@ func displayApiList() {
 	}
 
 	newApi := apiList[index].ApiUrl
-	app.SetPipedApi(newApi)
+	app.Piped.SetPipedApi(newApi)
 }
 
 func modifyApi(arg string) {
 	if arg != "" {
-		app.SetPipedApi(arg)
-		fmt.Println("Api changed from ", Gray(app.GetOldPipedApi()), " to ", Green(app.GetPipedApi()))
+		app.Piped.SetPipedApi(arg)
+		fmt.Println("Api changed from ", Gray(app.Piped.GetOldPipedApi()), " to ", Green(app.Piped.GetPipedApi()))
 	} else {
 		errorLog("no arguments")
 	}
@@ -329,7 +332,7 @@ func radioPlay(arg string) {
 		removeAllIndex("")
 	} else {
 		var err error
-		audio, err = app.GetYtSong(arg, false)
+		audio, err = app.GetSong(false)(arg, false)
 		handleErrExit(err)
 
 		err = vlcPlayer.ResetPlayer()
@@ -340,7 +343,7 @@ func radioPlay(arg string) {
 	}
 
 	go func() {
-		audioList, err := app.GetYtRadioList(audio.YtId, true, 1, 10)
+		audioList, err := app.GetPlayList(false)(audio.YtId, true, 1, 10)
 		handleErrExit(err)
 
 		for _, audio := range *audioList {
@@ -351,7 +354,7 @@ func radioPlay(arg string) {
 
 func appendPlay(arg string) {
 	if arg != "" {
-		audio, err := app.GetPipedSong(arg, false)
+		audio, err := app.GetSong(true)(arg, false)
 		handleErrExit(err)
 
 		vlcPlayer.AppendAudio(audio)
@@ -370,7 +373,7 @@ func searchPlay(arg string) {
 		return
 	}
 
-	audioBasicList, err := app.SearchPipedSong(arg, 0, 10)
+	audioBasicList, err := app.GetSearchList(true)(arg, 0, 10)
 	handleErrExit(err)
 
 	for i, audio := range *audioBasicList {
@@ -398,7 +401,7 @@ func searchPlay(arg string) {
 
 	audioBasic := (*audioBasicList)[index]
 
-	audio, err := app.GetPipedSong(audioBasic.YtId, true)
+	audio, err := app.GetSong(true)(audioBasic.YtId, true)
 	if displayErr(err) {
 		return
 	}

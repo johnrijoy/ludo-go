@@ -7,13 +7,34 @@ import (
 
 var fetcherLog = log.New(io.Discard, "musicFetcher: ", log.LstdFlags)
 
-type audioFetcher interface {
-	GetSong(songName string, isVideoID bool) (*AudioDetails, error)
-	GetPlayList(searchString string, radioLen int, skipFirst bool, isVideoID bool) (*[]AudioDetails, error)
+// Common musicFetcher types
+type GetSongFunc func(searchString string, isVideoID bool) (*AudioDetails, error)
+type GetPlayListFunc func(searchString string, isVideoID bool, offset int, limit int) (*[]AudioDetails, error)
+type SearchSongFunc func(searchString string, offset int, limit int) (*[]AudioBasic, error)
 
-	SearchSong(songName string, offset int, limit int) (*[]AudioBasic, error)
+// Fetcher funcs
+func GetSong(isPiped bool) GetSongFunc {
+	if isPiped {
+		return GetPipedSong
+	}
+	return GetYtSong
 }
 
+func GetPlayList(isPiped bool) GetPlayListFunc {
+	if isPiped {
+		return GetPipedRadioList
+	}
+	return GetYtRadioList
+}
+
+func GetSearchList(isPiped bool) SearchSongFunc {
+	if isPiped {
+		return SearchPipedSong
+	}
+	return SearchYtSong
+}
+
+// Piped Funcs
 func GetPipedSong(searchString string, isVideoID bool) (*AudioDetails, error) {
 
 	fetcherLog.Println("Fetching song: ", searchString)
@@ -68,6 +89,7 @@ func SearchPipedSong(searchString string, offset int, limit int) (*[]AudioBasic,
 	return getPipedSearchList(searchString, offset, limit)
 }
 
+// Yt Funcs
 func GetYtSong(searchString string, isVideoID bool) (*AudioDetails, error) {
 	musicId, err := resolveMusicId(searchString, isVideoID, getYtMusicId)
 	if err != nil {
