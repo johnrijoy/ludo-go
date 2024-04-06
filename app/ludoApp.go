@@ -15,17 +15,30 @@ var appLog = log.New(io.Discard, "App:", log.LstdFlags|log.Lmsgprefix)
 type AppContext struct {
 	vlcPlayer VlcPlayer
 	props     properties.Properties
+	audioDb   AudioDatastore
 }
 
 func (app *AppContext) Init() error {
+	// Load properties file
 	props, err := loadProperties()
 	if err != nil {
 		return err
 	}
 	app.props = *props
+
+	// Set Piped config
 	setPipedConfig(props)
 
-	if err := app.vlcPlayer.InitPlayer(); err != nil {
+	// Load database
+	localDr, _ := getLudoDir()
+	dbPath := props.GetString(dataStoreKey, localDr)
+
+	if err := app.audioDb.InitDb(dbPath); err != nil {
+		return err
+	}
+
+	// load audio player
+	if err := app.vlcPlayer.InitPlayer(&app.audioDb); err != nil {
 		return err
 	}
 	return nil
@@ -35,11 +48,24 @@ func (app *AppContext) Close() error {
 	if err := app.vlcPlayer.ClosePlayer(); err != nil {
 		return err
 	}
+	localDr, _ := getLudoDir()
+	dumpPath := filepath.Join(localDr, "dumps.json")
+
+	app.audioDb.db.ExportCollection(audioDocCollection, dumpPath)
+
+	if err := app.audioDb.CloseDb(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (app *AppContext) VlcPlayer() *VlcPlayer {
 	return &app.vlcPlayer
+}
+
+func (app *AppContext) AudioDb() *AudioDatastore {
+	return &app.audioDb
 }
 
 func loadProperties() (*properties.Properties, error) {
@@ -48,14 +74,13 @@ func loadProperties() (*properties.Properties, error) {
 	appLog.Println(os.UserConfigDir())
 
 	// loading config path from user cache
-	localDr, _ := os.UserCacheDir()
-	ludoCfg := filepath.Join(localDr, ludoDir, ludoPropertiesFile)
-	appLog.Println(ludoCfg)
-
-	// looking for path in ENV
-	if path, ok := os.LookupEnv("LUDO_CONFIG_PATH"); ok {
-		ludoCfg = path
+	localDr, err := getLudoDir()
+	if err != nil {
+		return nil, err
 	}
+	appLog.Println(localDr)
+
+	ludoCfg := filepath.Join(localDr, ludoPropertiesFile)
 
 	if _, err := os.Stat(ludoCfg); os.IsNotExist(err) {
 		appLog.Println("properties file does not exist")
@@ -71,7 +96,9 @@ func loadProperties() (*properties.Properties, error) {
 		}
 
 		appLog.Println("Loading default props")
-		prop = properties.MustLoadString(defaultProp)
+		prop = properties.NewProperties()
+		prop.Set(pipedApiKey, defaultPipedApi)
+		prop.Set(instanceListApiKey, defaultInstanceListApi)
 		if err := createPropertiesFile(prop, ludoCfg); err != nil {
 			return nil, err
 		}
@@ -104,4 +131,20 @@ func createPropertiesFile(prop *properties.Properties, ludoCfg string) error {
 
 	appLog.Println("Properties created:", n)
 	return nil
+}
+
+func getLudoDir() (string, error) {
+	localDr, err := os.UserCacheDir()
+	if err != nil {
+		return "", err
+	}
+	ludoDir := filepath.Join(localDr, ludoBaseDir)
+	appLog.Println(ludoDir)
+
+	// looking for path in ENV
+	if path, ok := os.LookupEnv("LUDO_BASE_PATH"); ok {
+		ludoDir = path
+	}
+
+	return ludoDir, nil
 }
