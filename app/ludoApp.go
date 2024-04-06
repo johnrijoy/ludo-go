@@ -13,9 +13,10 @@ import (
 var appLog = log.New(io.Discard, "App:", log.LstdFlags|log.Lmsgprefix)
 
 type AppContext struct {
-	vlcPlayer VlcPlayer
-	props     properties.Properties
-	audioDb   AudioDatastore
+	vlcPlayer  VlcPlayer
+	props      properties.Properties
+	audioDb    AudioDatastore
+	audioCache CacheStore
 }
 
 func (app *AppContext) Init() error {
@@ -37,8 +38,15 @@ func (app *AppContext) Init() error {
 		return err
 	}
 
+	// load Cache
+	defCachePath := filepath.Join(localDr, defaultCacheDir)
+	cachePath := props.GetString(cacheDirKey, defCachePath)
+	if err := app.audioCache.Init(cachePath); err != nil {
+		return err
+	}
+
 	// load audio player
-	if err := app.vlcPlayer.InitPlayer(&app.audioDb); err != nil {
+	if err := app.vlcPlayer.InitPlayer(&app.audioDb, &app.audioCache); err != nil {
 		return err
 	}
 	return nil
@@ -56,6 +64,8 @@ func (app *AppContext) Close() error {
 	if err := app.audioDb.CloseDb(); err != nil {
 		return err
 	}
+
+	app.audioCache.Close()
 
 	return nil
 }

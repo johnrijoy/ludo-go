@@ -8,7 +8,7 @@ const (
 const (
 	ludoBaseDir        = "ludo"
 	ludoPropertiesFile = "ludo.props"
-	cacheDir           = "cache"
+	defaultCacheDir    = "cache"
 )
 
 // properties file
