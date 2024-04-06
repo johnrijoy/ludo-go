@@ -48,6 +48,8 @@ var commands = []string{
 var configs = []string{
 	"config.piped.apiUrl-default piped api to be used",
 	"config.piped.instanceListApi-default instance list api to be used",
+	"config.cache.path-path to audio caching",
+	"config.database.path-path to db",
 }
 
 func RunPrompt() {
