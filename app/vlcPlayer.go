@@ -17,6 +17,7 @@ type VlcPlayer struct {
 	audioState   AudioState
 	eventIDs     EventIdList
 	isMediaError bool
+	audioDb      *AudioDatastore
 }
 
 type EventIdList struct {
@@ -45,7 +46,7 @@ func Info() vlc.VersionInfo {
 }
 
 // Creates and initialises a new vlc player
-func (vlcPlayer *VlcPlayer) InitPlayer() error {
+func (vlcPlayer *VlcPlayer) InitPlayer(audioDb *AudioDatastore) error {
 	err := vlc.Init("--no-video", "--quiet")
 	if err != nil {
 		return err
@@ -72,10 +73,11 @@ func (vlcPlayer *VlcPlayer) InitPlayer() error {
 	vlcPlayer.audioState = AudioState{}
 	vlcPlayer.isMediaError = false
 	vlcPlayer.audioState.currentTrackIndex = -1
+	vlcPlayer.audioDb = audioDb
 
-	vlcPlayer.attachEvents()
+	vlcLog.Println("Audio Datastore not initialised")
 
-	return nil
+	return vlcPlayer.attachEvents()
 }
 
 // Stops and releases the creates vlc player
@@ -113,7 +115,7 @@ func (vlcPlayer *VlcPlayer) ClosePlayer() error {
 
 func (vlcPlayer *VlcPlayer) ResetPlayer() error {
 	vlcPlayer.ClosePlayer()
-	return vlcPlayer.InitPlayer()
+	return vlcPlayer.InitPlayer(vlcPlayer.audioDb)
 }
 
 //////////////////////
@@ -437,10 +439,12 @@ func (vlcPlayer *VlcPlayer) attachEvents() error {
 		vlcPlayer.audioState.updateAudioState(&vlcPlayer.audioQueue[trackIndex])
 		eventLog.Println(vlcPlayer.audioState.String())
 
-		err := audioDb.SaveOrIncrementAudioDoc(vlcPlayer.audioState.AudioBasic)
-		if err != nil {
-			eventLog.Println("!! [mediaChangedCallback] error in saving to db")
-			eventLog.Println(err)
+		if vlcPlayer.audioDb != nil {
+			err := vlcPlayer.audioDb.SaveOrIncrementAudioDoc(vlcPlayer.audioState.AudioBasic)
+			if err != nil {
+				eventLog.Println("!! [mediaChangedCallback] error in saving to db")
+				eventLog.Println(err)
+			}
 		}
 	}
 

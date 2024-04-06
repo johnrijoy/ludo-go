@@ -1,20 +1,23 @@
 package app
 
 const (
-	defaultProp = "config.piped.apiUrl=https://pipedapi.kavin.rocks\nconfig.piped.instanceListApi=https://piped-instances.kavin.rocks"
-	Version     = "0.1.0"
+	Version = "0.1.0"
 )
 
 // helper string
 const (
-	ludoDir                = "ludo"
-	ludoPropertiesFile     = "ludo.properties"
-	defaultCacheDir        = "cache"
-	configPathKey          = "config.path"
+	ludoBaseDir        = "ludo"
+	ludoPropertiesFile = "ludo.props"
+	cacheDir           = "cache"
+)
+
+// properties file
+const (
 	dataStoreKey           = "config.database.path"
-	pipedUrlKey            = "config.piped.apiUrl"
-	instanceListUrlKey     = "config.piped.instanceListApi"
-	defaultPipedUrl        = "https://pipedapi.kavin.rocks"
+	cacheDirKey            = "config.cache.path"
+	pipedApiKey            = "config.piped.apiUrl"
+	defaultPipedApi        = "https://pipedapi.kavin.rocks"
+	instanceListApiKey     = "config.piped.instanceListApi"
 	defaultInstanceListApi = "https://piped-instances.kavin.rocks"
 )
 

@@ -12,8 +12,6 @@ import (
 
 var dbLog = log.New(os.Stdout, "audioDb: ", log.LstdFlags|log.Lmsgprefix)
 
-var audioDb AudioDatastore
-
 type AudioDatastore struct {
 	db *clover.DB
 }
@@ -64,7 +62,7 @@ func (adb *AudioDatastore) IsAudioDocExist(ytId string) (bool, error) {
 
 func (adb *AudioDatastore) SaveAudioDoc(aud AudioBasic) error {
 	audioDoc := NewaudioDoc(aud)
-	_, err := audioDb.db.InsertOne(audioDocCollection, audioDoc.getDocument())
+	_, err := adb.db.InsertOne(audioDocCollection, audioDoc.getDocument())
 	return err
 }
 
