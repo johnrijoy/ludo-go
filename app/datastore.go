@@ -1,8 +1,8 @@
 package app
 
 import (
+	"io"
 	"log"
-	"os"
 	"time"
 
 	"github.com/ostafen/clover/v2"
@@ -10,7 +10,9 @@ import (
 	"github.com/ostafen/clover/v2/query"
 )
 
-var dbLog = log.New(os.Stdout, "audioDb: ", log.LstdFlags|log.Lmsgprefix)
+var dbLog = log.New(io.Discard, "audioDb: ", log.LstdFlags|log.Lmsgprefix)
+
+var audioDb AudioDatastore
 
 type AudioDatastore struct {
 	db *clover.DB

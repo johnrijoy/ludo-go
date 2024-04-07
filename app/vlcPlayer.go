@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"os"
 
 	vlc "github.com/adrg/libvlc-go/v3"
 )
+
+var vlcPlayer VlcPlayer
 
 type VlcPlayer struct {
 	player       *vlc.ListPlayer
@@ -17,7 +18,6 @@ type VlcPlayer struct {
 	audioState   AudioState
 	eventIDs     EventIdList
 	isMediaError bool
-	audioDb      *AudioDatastore
 }
 
 type EventIdList struct {
@@ -26,7 +26,7 @@ type EventIdList struct {
 }
 
 var vlcLog = log.New(io.Discard, "vlc: ", log.LstdFlags|log.Lmsgprefix)
-var eventLog = log.New(os.Stdout, "vlcEvent: ", log.LstdFlags|log.Lmsgprefix)
+var eventLog = log.New(io.Discard, "vlcEvent: ", log.LstdFlags|log.Lmsgprefix)
 
 var playerStateMap = map[int]string{
 	0: "Nothing Special",
@@ -46,7 +46,7 @@ func Info() vlc.VersionInfo {
 }
 
 // Creates and initialises a new vlc player
-func (vlcPlayer *VlcPlayer) InitPlayer(audioDb *AudioDatastore) error {
+func (vlcPlayer *VlcPlayer) InitPlayer() error {
 	err := vlc.Init("--no-video", "--quiet")
 	if err != nil {
 		return err
@@ -73,7 +73,6 @@ func (vlcPlayer *VlcPlayer) InitPlayer(audioDb *AudioDatastore) error {
 	vlcPlayer.audioState = AudioState{}
 	vlcPlayer.isMediaError = false
 	vlcPlayer.audioState.currentTrackIndex = -1
-	vlcPlayer.audioDb = audioDb
 
 	vlcLog.Println("Audio Datastore not initialised")
 
@@ -115,7 +114,7 @@ func (vlcPlayer *VlcPlayer) ClosePlayer() error {
 
 func (vlcPlayer *VlcPlayer) ResetPlayer() error {
 	vlcPlayer.ClosePlayer()
-	return vlcPlayer.InitPlayer(vlcPlayer.audioDb)
+	return vlcPlayer.InitPlayer()
 }
 
 //////////////////////
@@ -370,9 +369,13 @@ func (vlcPlayer *VlcPlayer) SkipToIndex(trackIndex int) error {
 
 func (vlcPlayer *VlcPlayer) addSongToQueue(audio *AudioDetails) error {
 	vlcPlayer.audioQueue = append(vlcPlayer.audioQueue, *audio)
-	err := vlcPlayer.mediaList.AddMediaFromURL(audio.AudioStreamUrl)
 
-	return err
+	if mediaPath, ok := audioCache.LookupCache(audio.AudioBasic); ok {
+		vlcLog.Println("Playing Cached audio:", audio.Title, ",", mediaPath)
+		return vlcPlayer.mediaList.AddMediaFromPath(mediaPath)
+	}
+
+	return vlcPlayer.mediaList.AddMediaFromURL(audio.AudioStreamUrl)
 }
 
 func (vlcPlayer *VlcPlayer) updateCurrentMedia(trackIndex int) error {
@@ -439,13 +442,14 @@ func (vlcPlayer *VlcPlayer) attachEvents() error {
 		vlcPlayer.audioState.updateAudioState(&vlcPlayer.audioQueue[trackIndex])
 		eventLog.Println(vlcPlayer.audioState.String())
 
-		if vlcPlayer.audioDb != nil {
-			err := vlcPlayer.audioDb.SaveOrIncrementAudioDoc(vlcPlayer.audioState.AudioBasic)
-			if err != nil {
-				eventLog.Println("!! [mediaChangedCallback] error in saving to db")
-				eventLog.Println(err)
-			}
+		err := audioDb.SaveOrIncrementAudioDoc(vlcPlayer.audioState.AudioBasic)
+
+		if err != nil {
+			eventLog.Println("!! [mediaChangedCallback] error in saving to db")
+			eventLog.Println(err)
 		}
+
+		audioCache.CacheAudio(vlcPlayer.audioState.AudioDetails)
 	}
 
 	positionChangedCallback := func(event vlc.Event, userData interface{}) {

@@ -96,7 +96,7 @@ func (p *PipedConfig) GetPipedInstanceList() ([]PipedInstance, error) {
 	return apiList, nil
 }
 
-func setPipedConfig(props *properties.Properties) {
+func setPipedConfig(props properties.Properties) {
 	Piped.apiUrl = props.GetString(pipedApiKey, defaultPipedApi)
 	Piped.instanceListApi = props.GetString(instanceListApiKey, defaultInstanceListApi)
 }
