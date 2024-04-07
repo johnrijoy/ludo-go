@@ -18,7 +18,7 @@ type CacheStore struct {
 	cacheMap  map[string]string
 }
 
-var cacheLog = log.New(os.Stdout, "cacheStore: ", log.LstdFlags|log.Lmsgprefix)
+var cacheLog = log.New(io.Discard, "cacheStore: ", log.LstdFlags|log.Lmsgprefix)
 
 func (cache *CacheStore) Init(cacheDir string) error {
 	if !cache.isEnabled {
