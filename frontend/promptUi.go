@@ -48,19 +48,20 @@ var commands = []string{
 var configs = []string{
 	"config.piped.apiUrl-default piped api to be used",
 	"config.piped.instanceListApi-default instance list api to be used",
+	"config.cache.path-path to audio caching",
+	"config.database.path-path to db",
 }
 
 func RunPrompt() {
-	var appCtx app.AppContext
 	exitSig := false
 
 	log.SetOutput(io.Discard)
-	err := appCtx.Init()
+	err := app.Init()
 	handleErrExit(err)
-	defer appCtx.Close()
+	defer app.Close()
 
-	vlcPlayer = appCtx.VlcPlayer()
-	audioDb = appCtx.AudioDb()
+	vlcPlayer = app.MediaPlayer()
+	audioDb = app.AudioDb()
 
 	showStartupMessage()
 

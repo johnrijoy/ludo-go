@@ -69,7 +69,7 @@ func playMusicVlc2(songName string) {
 	//fmt.Println("{}", audio.audioStreamUrl)
 
 	var vlcPlayer app.VlcPlayer
-	err = vlcPlayer.InitPlayer(nil)
+	err = vlcPlayer.InitPlayer()
 	checkErr(err)
 	defer vlcPlayer.ClosePlayer()
 
@@ -85,7 +85,7 @@ func playMusicVlc2(songName string) {
 
 func playMusicVlc3(songList ...string) {
 	var vlcPlayer app.VlcPlayer
-	err := vlcPlayer.InitPlayer(nil)
+	err := vlcPlayer.InitPlayer()
 	checkErr(err)
 	defer vlcPlayer.ClosePlayer()
 
