@@ -53,16 +53,15 @@ var configs = []string{
 }
 
 func RunPrompt() {
-	var appCtx app.AppContext
 	exitSig := false
 
 	log.SetOutput(io.Discard)
-	err := appCtx.Init()
+	err := app.Init()
 	handleErrExit(err)
-	defer appCtx.Close()
+	defer app.Close()
 
-	vlcPlayer = appCtx.VlcPlayer()
-	audioDb = appCtx.AudioDb()
+	vlcPlayer = app.MediaPlayer()
+	audioDb = app.AudioDb()
 
 	showStartupMessage()
 

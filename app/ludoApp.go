@@ -12,20 +12,15 @@ import (
 
 var appLog = log.New(io.Discard, "App:", log.LstdFlags|log.Lmsgprefix)
 
-type AppContext struct {
-	vlcPlayer  VlcPlayer
-	props      properties.Properties
-	audioDb    AudioDatastore
-	audioCache CacheStore
-}
+var props properties.Properties
 
-func (app *AppContext) Init() error {
+func Init() error {
 	// Load properties file
-	props, err := loadProperties()
+	lprops, err := loadProperties()
 	if err != nil {
 		return err
 	}
-	app.props = *props
+	props = *lprops
 
 	// Set Piped config
 	setPipedConfig(props)
@@ -34,48 +29,49 @@ func (app *AppContext) Init() error {
 	localDr, _ := getLudoDir()
 	dbPath := props.GetString(dataStoreKey, localDr)
 
-	if err := app.audioDb.InitDb(dbPath); err != nil {
+	if err := audioDb.InitDb(dbPath); err != nil {
 		return err
 	}
 
 	// load Cache
 	defCachePath := filepath.Join(localDr, defaultCacheDir)
 	cachePath := props.GetString(cacheDirKey, defCachePath)
-	if err := app.audioCache.Init(cachePath); err != nil {
+	audioCache.isEnabled = props.GetBool(isCacheEnabledKey, true)
+	if err := audioCache.Init(cachePath); err != nil {
 		return err
 	}
 
 	// load audio player
-	if err := app.vlcPlayer.InitPlayer(&app.audioDb, &app.audioCache); err != nil {
+	if err := vlcPlayer.InitPlayer(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (app *AppContext) Close() error {
-	if err := app.vlcPlayer.ClosePlayer(); err != nil {
+func Close() error {
+	if err := vlcPlayer.ClosePlayer(); err != nil {
 		return err
 	}
 	localDr, _ := getLudoDir()
 	dumpPath := filepath.Join(localDr, "dumps.json")
 
-	app.audioDb.db.ExportCollection(audioDocCollection, dumpPath)
+	audioDb.db.ExportCollection(audioDocCollection, dumpPath)
 
-	if err := app.audioDb.CloseDb(); err != nil {
+	if err := audioDb.CloseDb(); err != nil {
 		return err
 	}
 
-	app.audioCache.Close()
+	audioCache.Close()
 
 	return nil
 }
 
-func (app *AppContext) VlcPlayer() *VlcPlayer {
-	return &app.vlcPlayer
+func MediaPlayer() *VlcPlayer {
+	return &vlcPlayer
 }
 
-func (app *AppContext) AudioDb() *AudioDatastore {
-	return &app.audioDb
+func AudioDb() *AudioDatastore {
+	return &audioDb
 }
 
 func loadProperties() (*properties.Properties, error) {

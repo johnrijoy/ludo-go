@@ -12,6 +12,8 @@ import (
 
 var dbLog = log.New(io.Discard, "audioDb: ", log.LstdFlags|log.Lmsgprefix)
 
+var audioDb AudioDatastore
+
 type AudioDatastore struct {
 	db *clover.DB
 }

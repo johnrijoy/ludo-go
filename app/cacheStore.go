@@ -10,14 +10,22 @@ import (
 	"strings"
 )
 
+var audioCache CacheStore
+
 type CacheStore struct {
-	cacheDir string
-	cacheMap map[string]string
+	isEnabled bool
+	cacheDir  string
+	cacheMap  map[string]string
 }
 
-var cacheLog = log.New(io.Discard, "cacheStore: ", log.LstdFlags|log.Lmsgprefix)
+var cacheLog = log.New(os.Stdout, "cacheStore: ", log.LstdFlags|log.Lmsgprefix)
 
 func (cache *CacheStore) Init(cacheDir string) error {
+	if !cache.isEnabled {
+		cacheLog.Println("Caching is disabled")
+		return nil
+	}
+
 	cacheLog.Println("Cache at:", cacheDir)
 	cache.cacheDir = cacheDir
 	if err := os.MkdirAll(cacheDir, 0755); err != nil {
@@ -36,6 +44,11 @@ func (cache *CacheStore) Close() error {
 }
 
 func (cache *CacheStore) CacheAudio(audio AudioDetails) {
+	if !cache.isEnabled {
+		cacheLog.Println("Caching is disabled")
+		return
+	}
+
 	trackTitle := audio.Title
 	fileName := audio.YtId
 	audioStreamUrl := audio.AudioStreamUrl
@@ -53,6 +66,27 @@ func (cache *CacheStore) CacheAudio(audio AudioDetails) {
 	}
 }
 
+func (cache *CacheStore) LookupCache(audio AudioBasic) (string, bool) {
+	if !cache.isEnabled {
+		cacheLog.Println("Caching is disabled")
+		return "", false
+	}
+
+	cachePath, ok := cache.cacheMap[audio.YtId]
+
+	if !ok {
+		fileLoc := filepath.Join(cache.cacheDir, audio.YtId+".m4a")
+		cachePath, ok = searchCacheDir(fileLoc)
+		if !ok {
+			return "", false
+		}
+		cache.cacheMap[audio.YtId] = cachePath
+	}
+
+	cacheLog.Println("Audio Cached at:", cachePath)
+	return cachePath, true
+}
+
 func (cache *CacheStore) buildCacheMap() (map[string]string, error) {
 	cacheMap := make(map[string]string)
 	matches, err := filepath.Glob(filepath.Join(cache.cacheDir, "*.m4a"))
@@ -68,21 +102,6 @@ func (cache *CacheStore) buildCacheMap() (map[string]string, error) {
 
 	cacheLog.Println(cacheMap)
 	return cacheMap, nil
-}
-
-func (cache *CacheStore) LookupCache(audio AudioBasic) (string, bool) {
-	cachePath, ok := cache.cacheMap[audio.YtId]
-
-	if !ok {
-		fileLoc := filepath.Join(cache.cacheDir, audio.YtId+".m4a")
-		cachePath, ok = searchCacheDir(fileLoc)
-		if !ok {
-			return "", false
-		}
-		cache.cacheMap[audio.YtId] = cachePath
-		cacheLog.Println("Audio Cached at:", cachePath)
-	}
-	return cachePath, true
 }
 
 func searchCacheDir(fileLoc string) (string, bool) {

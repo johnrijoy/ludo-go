@@ -41,7 +41,6 @@ func (audioBasic *AudioBasic) validate() bool {
 type AudioDetails struct {
 	AudioBasic
 	AudioStreamUrl   string
-	isCached         bool
 	RelatedAudioList []AudioBasic
 }
 
