@@ -1,7 +1,11 @@
 package main
 
-import "github.com/johnrijoy/ludo-go/frontend"
+import (
+	"github.com/johnrijoy/ludo-go/frontend/prompt"
+	"github.com/johnrijoy/ludo-go/frontend/rest"
+)
 
 func main() {
-	frontend.RunPrompt()
+	go rest.Run()
+	prompt.Run()
 }

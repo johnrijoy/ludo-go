@@ -8,7 +8,12 @@ import (
 
 var appLog = log.New(io.Discard, "App:", log.LstdFlags|log.Lmsgprefix)
 
+var isRunning = false
+
 func Init() error {
+	if isRunning {
+		return nil
+	}
 	// Load properties file
 	lprops, err := loadProperties()
 	if err != nil {
@@ -39,10 +44,15 @@ func Init() error {
 	if err := vlcPlayer.InitPlayer(); err != nil {
 		return err
 	}
+
+	isRunning = true
 	return nil
 }
 
 func Close() error {
+	if !isRunning {
+		return nil
+	}
 	if err := vlcPlayer.ClosePlayer(); err != nil {
 		return err
 	}
@@ -57,6 +67,7 @@ func Close() error {
 
 	audioCache.Close()
 
+	isRunning = false
 	return nil
 }
 

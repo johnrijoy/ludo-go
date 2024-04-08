@@ -1,4 +1,4 @@
-package frontend
+package prompt
 
 import (
 	"fmt"
@@ -52,7 +52,7 @@ var configs = []string{
 	"config.database.path-path to db",
 }
 
-func RunPrompt() {
+func Run() {
 	exitSig := false
 
 	log.SetOutput(io.Discard)
