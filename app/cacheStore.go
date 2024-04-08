@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -142,7 +141,7 @@ func downloadFile(filePath, fileUrl string) error {
 
 	// download file
 	size, err := io.Copy(file, resp.Body)
-	fmt.Println()
+	cacheLog.Println()
 	if err != nil {
 		return err
 	}
