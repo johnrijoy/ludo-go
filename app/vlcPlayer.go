@@ -52,6 +52,8 @@ func (vlcPlayer *VlcPlayer) InitPlayer() error {
 		return err
 	}
 
+	vlc.SetAppName("LudoGO", "")
+
 	// Create a new list player.
 	player, err := vlc.NewListPlayer()
 	if err != nil {
