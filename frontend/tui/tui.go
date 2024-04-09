@@ -17,20 +17,21 @@ func Run() {
 }
 
 type mainModel struct {
-	cmdInput      textinput.Model
-	currentStatus respStatus
-	statusChan    chan respStatus
-	resultMsg     string
-	searchList    []string
-	mode          imode
-	err           error
+	cmdInput       textinput.Model
+	currentStatus  respStatus
+	statusChan     chan respStatus
+	resultMsg      string
+	searchList     []string
+	postSearchFunc postIntList
+	mode           imode
+	err            error
 }
 
 func newMainModel() mainModel {
 	m := mainModel{}
 
 	m.cmdInput = textinput.New()
-	m.cmdInput.Prompt = ">> "
+	m.cmdInput.Prompt = commandPrompt
 	m.cmdInput.Focus()
 	m.cmdInput.CharLimit = 200
 	m.cmdInput.Width = 50

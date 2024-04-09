@@ -2,6 +2,8 @@ package tui
 
 import "strings"
 
+const commandPrompt = ">> "
+
 type respStatus struct {
 	mediaStatus mediaStat
 	pos         int
@@ -38,6 +40,23 @@ func (m mediaStat) String() string {
 	return val
 }
 
+// Warn error
+
+type ErrWarn struct {
+	msg string
+}
+
+func Warn(msg string) ErrWarn {
+	return ErrWarn{msg: msg}
+}
+
+func (w ErrWarn) Error() string {
+	return w.msg
+}
+
+// post Interactive List func type
+type postIntList func(index int, m *mainModel)
+
 // helpers
 func parseCommand(command string) (string, string) {
 	cmdList := strings.Split(command, " ")
@@ -48,4 +67,32 @@ func parseCommand(command string) (string, string) {
 	}
 
 	return command, arg
+}
+
+func setInteractiveListMode(m *mainModel, prompt string) {
+	m.mode = interactiveListMode
+	m.cmdInput.Prompt = prompt
+}
+
+func setCommandMode(m *mainModel) {
+	m.mode = commandMode
+	m.cmdInput.Prompt = commandPrompt
+}
+
+func handleErr(err error, m *mainModel) {
+	if err != nil {
+		m.err = err
+	}
+}
+
+func safeTruncString(label string, max int) string {
+	var result string
+
+	if len(label) <= max {
+		result = label
+	} else {
+		result = label[0:(max-3)] + "..."
+	}
+
+	return result
 }
