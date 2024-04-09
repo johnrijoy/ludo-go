@@ -479,7 +479,7 @@ func fetchSongList(arg string) {
 	}
 
 	for i, audDoc := range audDocs {
-		fmt.Printf("%-2d - %-50s | %-20s | %20s\n", i+1, audDoc.Title, audDoc.Uploader, audDoc.GetFormattedDuration())
+		fmt.Printf("%-2d - %-50s | %-20s | %20s\n", i+1, safeTruncString(audDoc.Title, 50), safeTruncString(audDoc.Uploader, 20), audDoc.GetFormattedDuration())
 	}
 }
 

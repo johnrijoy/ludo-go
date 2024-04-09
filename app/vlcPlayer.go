@@ -52,7 +52,7 @@ func (vlcPlayer *VlcPlayer) InitPlayer() error {
 		return err
 	}
 
-	vlc.SetAppName("LudoGO", "")
+	vlc.SetAppName(fmt.Sprintf("%s v%s", "LudoGo", Version), "")
 
 	// Create a new list player.
 	player, err := vlc.NewListPlayer()
