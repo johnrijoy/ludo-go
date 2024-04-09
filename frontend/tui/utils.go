@@ -1,5 +1,7 @@
 package tui
 
+import "strings"
+
 type respStatus struct {
 	mediaStatus mediaStat
 	pos         int
@@ -11,7 +13,7 @@ type imode uint8
 const (
 	commandMode imode = iota
 	listMode
-	searchMode
+	interactiveListMode
 )
 
 type mediaStat uint8
@@ -34,4 +36,16 @@ func (m mediaStat) String() string {
 		panic("Invalid constant")
 	}
 	return val
+}
+
+// helpers
+func parseCommand(command string) (string, string) {
+	cmdList := strings.Split(command, " ")
+	command = cmdList[0]
+	arg := ""
+	if len(cmdList) > 1 {
+		arg = strings.Join(cmdList[1:], " ")
+	}
+
+	return command, arg
 }

@@ -1,9 +1,7 @@
 package tui
 
 import (
-	"errors"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -60,10 +58,10 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case "enter":
 			cmd := m.cmdInput.Value()
-			if m.mode == searchMode {
-				parseSearch(cmd, &m)
+			if m.mode == interactiveListMode {
+				doInterativeList(cmd, &m)
 			} else {
-				parseCommand(cmd, &m)
+				doCommand(cmd, &m)
 			}
 			m.cmdInput.Reset()
 			return m, nil
@@ -96,7 +94,7 @@ func (m mainModel) View() string {
 		}
 	}
 
-	if m.mode == searchMode {
+	if m.mode == interactiveListMode {
 		s += fmt.Sprintln()
 		for i, item := range m.searchList {
 			s += fmt.Sprintf("%d - %s\n", i+1, item)
@@ -108,47 +106,6 @@ func (m mainModel) View() string {
 	}
 
 	return s
-}
-
-func parseCommand(cmd string, m *mainModel) {
-	m.mode = commandMode
-	switch cmd {
-	case "play":
-		m.resultMsg = "playing song 1"
-	case "nothing":
-		m.err = errors.New("not supported")
-	case "search":
-		m.mode = searchMode
-		m.cmdInput.Prompt = "> Please select a song: "
-		m.searchList = []string{"item1", "item2", "item3"}
-	case "show":
-		m.mode = listMode
-		m.searchList = []string{"item4", "item5", "item6"}
-	default:
-		m.err = errors.New("invalid command")
-	}
-}
-
-func parseSearch(ind string, m *mainModel) {
-	defer func() { m.cmdInput.Prompt = ">> " }()
-
-	i, err := strconv.Atoi(ind)
-	if err != nil {
-		m.err = errors.New("invalid index")
-		m.mode = commandMode
-		return
-	}
-
-	i--
-
-	if i < 0 || i >= len(m.searchList) {
-		m.err = errors.New("index out of bounds")
-		m.mode = commandMode
-		return
-	}
-
-	m.resultMsg = fmt.Sprintf("playing song < %s >", m.searchList[i])
-	m.mode = commandMode
 }
 
 func startActivity(status chan respStatus) tea.Cmd {
