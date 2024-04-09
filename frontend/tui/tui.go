@@ -6,9 +6,15 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/johnrijoy/ludo-go/app"
 )
 
 func Run() {
+	if err := app.Init(); err != nil {
+		panic(err)
+	}
+	defer app.Close()
+
 	p := tea.NewProgram(newMainModel())
 
 	if _, err := p.Run(); err != nil {
@@ -38,7 +44,7 @@ func newMainModel() mainModel {
 
 	m.statusChan = make(chan respStatus)
 
-	m.currentStatus = respStatus{mediaStatus: nothing, total: 100}
+	m.currentStatus = respStatus{mediaStatus: nothing, total: 0}
 
 	m.mode = commandMode
 	return m
@@ -80,6 +86,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m mainModel) View() string {
 	s := "LudoGo\n"
 	s += fmt.Sprintf("%s | %d / %d\n", m.currentStatus.mediaStatus, m.currentStatus.pos, m.currentStatus.total)
+	s += fmt.Sprintf("%s\n", &m.currentStatus.audio)
 	s += fmt.Sprintf("\n%s\n", m.cmdInput.View())
 
 	if m.mode == commandMode {
@@ -113,19 +120,11 @@ func startActivity(status chan respStatus) tea.Cmd {
 	return func() tea.Msg {
 		i := 0
 		for {
-			stat := playing
 			time.Sleep(time.Second)
-			if i%2 == 0 {
-				stat = paused
-			}
-			if i%5 == 0 {
-				stat = stopped
-			}
-
-			if i > 10 {
-				stat = mediaErr
-			}
-			status <- respStatus{pos: i, total: 100, mediaStatus: stat}
+			stat := app.MediaPlayer().FetchPlayerState()
+			curr, pos := app.MediaPlayer().GetMediaPosition()
+			aud := app.MediaPlayer().GetAudioState().AudioBasic
+			status <- respStatus{pos: curr, total: pos, mediaStatus: mediaStat(stat), audio: aud}
 			i++
 		}
 	}

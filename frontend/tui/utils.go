@@ -1,10 +1,15 @@
 package tui
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/johnrijoy/ludo-go/app"
+)
 
 const commandPrompt = ">> "
 
 type respStatus struct {
+	audio       app.AudioBasic
 	mediaStatus mediaStat
 	pos         int
 	total       int
@@ -22,14 +27,20 @@ type mediaStat uint8
 
 const (
 	nothing mediaStat = iota
+	opening
+	buffering
 	playing
 	paused
 	stopped
+	ended
 	mediaErr
+	invalid = 99
 )
 
 var mediaStatMap = map[mediaStat]string{
-	nothing: "○ Nothing", playing: "▶ Now Playing", paused: "▌▌Paused", stopped: "■ Stopped", mediaErr: "⚠ Media Error",
+	nothing: "○ Nothing", opening: "opening", buffering: "buffering",
+	playing: "▶ Now Playing", paused: "▌▌Paused", stopped: "■ Stopped",
+	ended: "Ended", mediaErr: "⚠ Media Error",
 }
 
 func (m mediaStat) String() string {

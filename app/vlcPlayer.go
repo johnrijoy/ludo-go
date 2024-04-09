@@ -39,6 +39,11 @@ var playerStateMap = map[int]string{
 	7: "Media Error",
 }
 
+func PlayerStateString(i int) (string, bool) {
+	val, ok := playerStateMap[i]
+	return val, ok
+}
+
 // display information regarding libVlc version
 func Info() vlc.VersionInfo {
 
@@ -248,20 +253,38 @@ func (vlcPlayer *VlcPlayer) GetQueue() []AudioDetails {
 	return vlcPlayer.audioQueue
 }
 
-func (vlcPlayer *VlcPlayer) FetchPlayerState() string {
+func (vlcPlayer *VlcPlayer) FetchPlayerState() int {
 	vlcLog.Println("Getting player state")
 	mediaState, err := vlcPlayer.player.MediaState()
 	if err != nil {
-		return "Error"
+		return 99
 	}
 
 	vlcLog.Printf("%v", mediaState)
 
-	return playerStateMap[int(mediaState)]
+	return int(mediaState)
 }
 
 func (vlcPlayer *VlcPlayer) CheckMediaError() bool {
 	return vlcPlayer.isMediaError
+}
+
+func (vlcPlayer *VlcPlayer) GetMediaPosition() (int, int) {
+	player, err := vlcPlayer.player.Player()
+	if err != nil {
+		return 0, 0
+	}
+	currTime, err := player.MediaTime()
+	if err != nil {
+		return 0, 0
+	}
+	totalTime, err := player.MediaLength()
+	if err != nil {
+		return 0, 0
+	}
+	currTime = currTime / 1000
+	totalTime = totalTime / 1000
+	return currTime, totalTime
 }
 
 ///////////////////

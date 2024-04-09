@@ -3,24 +3,27 @@ package app
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
 )
 
+var pipedLog = log.New(io.Discard, "pipedLog: ", log.LstdFlags)
+
 func getPipedApiMusicId(search string) (string, error) {
 	escapedSearch := url.QueryEscape(search)
 	target := Piped.GetPipedApi() + "/search?q=" + escapedSearch + "&filter=music_songs"
 
-	log.Println("target: ", target)
+	pipedLog.Println("target: ", target)
 
 	resp, err := http.Get(target)
 	if err != nil {
 		return "", err
 	}
 
-	log.Println("Resp status: ", resp.Status)
+	pipedLog.Println("Resp status: ", resp.Status)
 
 	if resp.StatusCode != 200 {
 		err = errors.New("[getPipedApiMusicId] bad response from api")
@@ -45,14 +48,14 @@ func getPipedApiMusicId(search string) (string, error) {
 func getPipedApiAudioStream(musicId string, loadRelated bool) (AudioDetails, error) {
 	target := Piped.GetPipedApi() + "/streams/" + musicId
 
-	log.Println("target: ", target)
+	pipedLog.Println("target: ", target)
 
 	resp, err := http.Get(target)
 	if err != nil {
 		return AudioDetails{}, err
 	}
 
-	log.Println("Resp status: ", resp.Status)
+	pipedLog.Println("Resp status: ", resp.Status)
 
 	if resp.StatusCode != 200 {
 		err = errors.New("[GetSong] bad response from api")
@@ -139,14 +142,14 @@ func getPipedSearchList(search string, offset int, limit int) (*[]AudioBasic, er
 	escapedSearch := url.QueryEscape(search)
 	target := Piped.GetPipedApi() + "/search?q=" + escapedSearch + "&filter=music_songs"
 
-	log.Println("target: ", target)
+	pipedLog.Println("target: ", target)
 
 	resp, err := http.Get(target)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Println("Resp status: ", resp.Status)
+	pipedLog.Println("Resp status: ", resp.Status)
 
 	if resp.StatusCode != 200 {
 		err = errors.New("[getPipedApiMusicId] bad response from api")
