@@ -6,7 +6,10 @@ import (
 	"github.com/johnrijoy/ludo-go/app"
 )
 
-const commandPrompt = ">> "
+const (
+	commandPrompt = ">> "
+	commandWidth  = 50
+)
 
 type respStatus struct {
 	audio       app.AudioBasic
@@ -15,6 +18,10 @@ type respStatus struct {
 	total       int
 }
 
+// common constants
+const defaultForwardRewind = 10
+
+// imode
 type imode uint8
 
 const (
@@ -23,6 +30,7 @@ const (
 	interactiveListMode
 )
 
+// media stat
 type mediaStat uint8
 
 const (
@@ -83,17 +91,25 @@ func parseCommand(command string) (string, string) {
 func setInteractiveListMode(m *mainModel, prompt string) {
 	m.mode = interactiveListMode
 	m.cmdInput.Prompt = prompt
+	m.cmdInput.Width = 5
+}
+
+func setListMode(m *mainModel) {
+	m.mode = listMode
 }
 
 func setCommandMode(m *mainModel) {
 	m.mode = commandMode
 	m.cmdInput.Prompt = commandPrompt
+	m.cmdInput.Width = commandWidth
 }
 
-func handleErr(err error, m *mainModel) {
+func handleErr(err error, m *mainModel) bool {
 	if err != nil {
 		m.err = err
+		return true
 	}
+	return false
 }
 
 func safeTruncString(label string, max int) string {
@@ -106,4 +122,31 @@ func safeTruncString(label string, max int) string {
 	}
 
 	return result
+}
+
+func safeTrimHeight(display string, termHeight int) string {
+	textHeight := strings.Count(display, "\n")
+	if textHeight > termHeight {
+		display = strings.Join(strings.Split(display, "\n")[0:termHeight], "\n")
+	}
+	return display
+}
+
+func safeTrimWidth(display string, termWidth int) string {
+	dispList := strings.Split(display, "\n")
+	newDispList := make([]string, len(dispList))
+	for i, line := range dispList {
+
+		if len(line) > termWidth {
+			line = safeTruncString(line, termWidth)
+		}
+		newDispList[i] = line
+	}
+	return strings.Join(newDispList, "\n")
+}
+
+func safeTrimView(display string, termWidth, termHeight int) string {
+	display = safeTrimHeight(display, termHeight)
+	display = safeTrimWidth(display, termWidth)
+	return display
 }
