@@ -3,7 +3,6 @@ package tui
 import (
 	"errors"
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 
@@ -29,9 +28,6 @@ func doCommand(cmd string, m *mainModel) {
 
 	case "showq", "q":
 		displayQueue(m)
-
-	case "curr", "c":
-		displayCurrentSong(m)
 
 	case "skipn", "n":
 		skipNext(m)
@@ -322,36 +318,6 @@ func skipPrevious(m *mainModel) {
 func skipNext(m *mainModel) {
 	err := app.MediaPlayer().SkipToNext()
 	handleErr(err, m)
-}
-
-// not required
-func displayCurrentSong(m *mainModel) {
-	if app.MediaPlayer().IsPlaying() {
-		fmt.Println(Green("Now playing..."))
-	} else if app.MediaPlayer().CheckMediaError() {
-		fmt.Println(Red("Error in playing media"))
-	} else {
-		val, ok := app.PlayerStateString(app.MediaPlayer().FetchPlayerState())
-		if !ok {
-			val = "Error"
-		}
-		fmt.Println(Yellow(val))
-	}
-
-	audState := app.MediaPlayer().GetAudioState()
-	currPos, totPos := (&audState).GetPositionDetails()
-
-	scale := len((&audState).String())
-
-	if totPos > currPos {
-		scaledCurrPos := int(math.Round((float64(currPos) / float64(totPos)) * float64(scale)))
-		restPosition := scale - scaledCurrPos
-
-		navMsg := Magenta(strings.Repeat(">", scaledCurrPos)) + Gray(strings.Repeat("-", restPosition))
-		fmt.Println(navMsg)
-	}
-
-	fmt.Println(&audState)
 }
 
 func displayQueue(m *mainModel) {

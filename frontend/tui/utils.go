@@ -2,7 +2,9 @@ package tui
 
 import (
 	"strings"
+	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/johnrijoy/ludo-go/app"
 )
 
@@ -46,9 +48,9 @@ const (
 )
 
 var mediaStatMap = map[mediaStat]string{
-	nothing: "○ Nothing", opening: "opening", buffering: "buffering",
-	playing: "▶ Now Playing", paused: "▌▌Paused", stopped: "■ Stopped",
-	ended: "Ended", mediaErr: "⚠ Media Error",
+	nothing: "○", opening: "🗁", buffering: "⢎⡱",
+	playing: "▶", paused: "▌▌", stopped: "↺",
+	ended: "■", mediaErr: "⚠",
 }
 
 func (m mediaStat) String() string {
@@ -57,6 +59,14 @@ func (m mediaStat) String() string {
 		panic("Invalid constant")
 	}
 	return val
+}
+
+// resize ticker
+type resizeTickMsg int
+
+func resizeTicker() tea.Msg {
+	time.Sleep(time.Second / 4)
+	return resizeTickMsg(1)
 }
 
 // Warn error
@@ -76,18 +86,7 @@ func (w ErrWarn) Error() string {
 // post Interactive List func type
 type postIntList func(index int, m *mainModel)
 
-// helpers
-func parseCommand(command string) (string, string) {
-	cmdList := strings.Split(command, " ")
-	command = cmdList[0]
-	arg := ""
-	if len(cmdList) > 1 {
-		arg = strings.Join(cmdList[1:], " ")
-	}
-
-	return command, arg
-}
-
+// Change tui state
 func setInteractiveListMode(m *mainModel, prompt string) {
 	m.mode = interactiveListMode
 	m.cmdInput.Prompt = prompt
@@ -102,6 +101,18 @@ func setCommandMode(m *mainModel) {
 	m.mode = commandMode
 	m.cmdInput.Prompt = commandPrompt
 	m.cmdInput.Width = commandWidth
+}
+
+// helpers
+func parseCommand(command string) (string, string) {
+	cmdList := strings.Split(command, " ")
+	command = cmdList[0]
+	arg := ""
+	if len(cmdList) > 1 {
+		arg = strings.Join(cmdList[1:], " ")
+	}
+
+	return command, arg
 }
 
 func handleErr(err error, m *mainModel) bool {
