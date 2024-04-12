@@ -7,6 +7,7 @@ import (
 	"log"
 
 	vlc "github.com/adrg/libvlc-go/v3"
+	uuid "github.com/satori/go.uuid"
 )
 
 var vlcPlayer VlcPlayer
@@ -78,8 +79,6 @@ func (vlcPlayer *VlcPlayer) InitPlayer() error {
 	vlcPlayer.audioState = AudioState{}
 	vlcPlayer.isMediaError = false
 	vlcPlayer.audioState.currentTrackIndex = -1
-
-	vlcLog.Println("Audio Datastore not initialised")
 
 	return vlcPlayer.attachEvents()
 }
@@ -292,6 +291,8 @@ func (vlcPlayer *VlcPlayer) GetMediaPosition() (int, int) {
 ///////////////////
 
 func (vlcPlayer *VlcPlayer) AppendAudio(audio *AudioDetails) error {
+	audio.uid = uuid.NewV1().String()
+	vlcLog.Println("Audio UUID:", audio.uid)
 	err := vlcPlayer.addSongToQueue(audio)
 	return err
 }
@@ -391,14 +392,37 @@ func (vlcPlayer *VlcPlayer) SkipToIndex(trackIndex int) error {
 ////////////////////////
 
 func (vlcPlayer *VlcPlayer) addSongToQueue(audio *AudioDetails) error {
-	vlcPlayer.audioQueue = append(vlcPlayer.audioQueue, *audio)
+	var media *vlc.Media
+	mediaCreated := false
 
 	if mediaPath, ok := audioCache.LookupCache(audio.AudioBasic); ok {
 		vlcLog.Println("Playing Cached audio:", audio.Title, ",", mediaPath)
-		return vlcPlayer.mediaList.AddMediaFromPath(mediaPath)
+		newMedia, err := vlc.NewMediaFromPath(mediaPath)
+		if err == nil {
+			media = newMedia
+			mediaCreated = true
+		}
+	}
+	if !mediaCreated {
+		newMedia, err := vlc.NewMediaFromURL(audio.AudioStreamUrl)
+		if err != nil {
+			return err
+		}
+		media = newMedia
+		mediaCreated = true
 	}
 
-	return vlcPlayer.mediaList.AddMediaFromURL(audio.AudioStreamUrl)
+	if !mediaCreated {
+		return errors.New("could not create Media")
+	}
+
+	err := media.SetUserData(audio.uid)
+	if err != nil {
+		return err
+	}
+
+	vlcPlayer.audioQueue = append(vlcPlayer.audioQueue, *audio)
+	return vlcPlayer.mediaList.AddMedia(media)
 }
 
 func (vlcPlayer *VlcPlayer) updateCurrentMedia(trackIndex int) error {
@@ -454,7 +478,37 @@ func (vlcPlayer *VlcPlayer) attachEvents() error {
 			return
 		}
 
-		vlcPlayer.audioState.currentTrackIndex += 1
+		player, err := vlcPlayer.player.Player()
+		if err != nil {
+			eventLog.Println("!! [mediaChangedCallback] error:", err)
+			return
+		}
+		media, err := player.Media()
+		if err != nil {
+			eventLog.Println("!! [mediaChangedCallback] error:", err)
+			return
+		}
+		uData, err := media.UserData()
+		if err != nil {
+			eventLog.Println("!! [mediaChangedCallback] error:", err)
+			return
+		}
+		currUid, ok := uData.(string)
+		if !ok {
+			eventLog.Println("!! [mediaChangedCallback] error: could not convert to uid")
+			return
+		}
+		eventLog.Println("Curr UID:", currUid)
+
+		currInd := -1
+		for i, aud := range vlcPlayer.audioQueue {
+			if aud.uid == currUid {
+				currInd = i
+				break
+			}
+		}
+
+		vlcPlayer.audioState.currentTrackIndex = currInd
 		trackIndex := vlcPlayer.audioState.currentTrackIndex
 		eventLog.Println(trackIndex)
 		if trackIndex < 0 || trackIndex > len(vlcPlayer.audioQueue) {
@@ -465,7 +519,7 @@ func (vlcPlayer *VlcPlayer) attachEvents() error {
 		vlcPlayer.audioState.updateAudioState(&vlcPlayer.audioQueue[trackIndex])
 		eventLog.Println(vlcPlayer.audioState.String())
 
-		err := audioDb.SaveOrIncrementAudioDoc(vlcPlayer.audioState.AudioBasic)
+		err = audioDb.SaveOrIncrementAudioDoc(vlcPlayer.audioState.AudioBasic)
 
 		if err != nil {
 			eventLog.Println("!! [mediaChangedCallback] error in saving to db")
@@ -475,43 +529,45 @@ func (vlcPlayer *VlcPlayer) attachEvents() error {
 		audioCache.CacheAudio(vlcPlayer.audioState.AudioDetails)
 	}
 
-	positionChangedCallback := func(event vlc.Event, userData interface{}) {
+	/*
+		positionChangedCallback := func(event vlc.Event, userData interface{}) {
 
-		vlcPlayer, ok := userData.(*VlcPlayer)
-		if !ok {
-			eventLog.Println("!! [positionChangedCallback] could not vlc user instance")
-			return
+			vlcPlayer, ok := userData.(*VlcPlayer)
+			if !ok {
+				eventLog.Println("!! [positionChangedCallback] could not vlc user instance")
+				return
+			}
+
+			//eventLog.Println("PositionChange Event")
+			player, err := vlcPlayer.player.Player()
+			if err != nil {
+				eventLog.Println("!! [positionChangedCallback] could not fetch player")
+				return
+			}
+
+			currPos, err := player.MediaTime()
+			if err != nil {
+				eventLog.Println("!! [positionChangedCallback] could not media curr time")
+				return
+			}
+			totPos, err := player.MediaLength()
+			if err != nil {
+				eventLog.Println("!! [positionChangedCallback] could not media total length")
+				return
+			}
+
+			//eventLog.Printf("currPoss: %d, totalPos: %d\n", currPos, totPos)
+
+			vlcPlayer.audioState.currentPos = currPos / 1000
+			vlcPlayer.audioState.totalLength = totPos / 1000
+
+			//vlcLog.Println(vlcPlayer.audioState.String())
+
+			if vlcPlayer.isMediaError {
+				vlcPlayer.isMediaError = false
+			}
 		}
-
-		//eventLog.Println("PositionChange Event")
-		player, err := vlcPlayer.player.Player()
-		if err != nil {
-			eventLog.Println("!! [positionChangedCallback] could not fetch player")
-			return
-		}
-
-		currPos, err := player.MediaTime()
-		if err != nil {
-			eventLog.Println("!! [positionChangedCallback] could not media curr time")
-			return
-		}
-		totPos, err := player.MediaLength()
-		if err != nil {
-			eventLog.Println("!! [positionChangedCallback] could not media total length")
-			return
-		}
-
-		//eventLog.Printf("currPoss: %d, totalPos: %d\n", currPos, totPos)
-
-		vlcPlayer.audioState.currentPos = currPos / 1000
-		vlcPlayer.audioState.totalLength = totPos / 1000
-
-		//vlcLog.Println(vlcPlayer.audioState.String())
-
-		if vlcPlayer.isMediaError {
-			vlcPlayer.isMediaError = false
-		}
-	}
+	*/
 
 	encounteredErrorCallback := func(event vlc.Event, userData interface{}) {
 		eventLog.Println("List player encountered error")
@@ -539,7 +595,7 @@ func (vlcPlayer *VlcPlayer) attachEvents() error {
 	}
 
 	// Retrieve player event manager.
-	manager, err := player.EventManager()
+	listPlayerMan, err := player.EventManager()
 	if err != nil {
 		return err
 	}
@@ -550,22 +606,24 @@ func (vlcPlayer *VlcPlayer) attachEvents() error {
 		return err
 	}
 
-	eventID1, err := manager.Attach(vlc.MediaPlayerMediaChanged, mediaChangedCallback, vlcPlayer)
+	eventID1, err := listPlayerMan.Attach(vlc.MediaPlayerMediaChanged, mediaChangedCallback, vlcPlayer)
 	if err != nil {
 		return err
 	}
 
-	eventID2, err := manager.Attach(vlc.MediaPlayerPositionChanged, positionChangedCallback, vlcPlayer)
+	/*
+		eventID2, err := listPlayerMan.Attach(vlc.MediaPlayerPositionChanged, positionChangedCallback, vlcPlayer)
+		if err != nil {
+			return err
+		}
+	*/
+
+	eventID3, err := listPlayerMan.Attach(vlc.MediaPlayerEncounteredError, encounteredErrorCallback, vlcPlayer)
 	if err != nil {
 		return err
 	}
 
-	eventID3, err := manager.Attach(vlc.MediaPlayerEncounteredError, encounteredErrorCallback, vlcPlayer)
-	if err != nil {
-		return err
-	}
-
-	playerEventID := []vlc.EventID{eventID1, eventID2, eventID3}
+	playerEventID := []vlc.EventID{eventID1, eventID3}
 	vlcPlayer.eventIDs.player = playerEventID
 
 	lPlayerEventID := []vlc.EventID{}

@@ -11,6 +11,8 @@ require (
 	github.com/magiconair/properties v1.8.7
 	github.com/ostafen/clover/v2 v2.0.0-alpha.3
 	github.com/raitonoberu/ytmusic v0.0.0-20240324143733-0e5780514b1d
+	github.com/satori/go.uuid v1.2.0
+	golang.org/x/term v0.6.0
 )
 
 require (
@@ -41,7 +43,6 @@ require (
 	github.com/muesli/termenv v0.15.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.4.6 // indirect
-	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
@@ -49,7 +50,6 @@ require (
 	golang.org/x/net v0.0.0-20220728211354-c7608f3a8462 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.14.0 // indirect
-	golang.org/x/term v0.6.0 // indirect
 	golang.org/x/text v0.3.8 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 )

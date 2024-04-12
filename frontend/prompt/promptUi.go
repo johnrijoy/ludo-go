@@ -268,28 +268,31 @@ func skipNext() {
 }
 
 func displayCurrentSong() {
+	var statusMsg string
 	if vlcPlayer.IsPlaying() {
-		fmt.Println(Green("Now playing..."))
+		statusMsg = Green(fmt.Sprintf("%-30s", "Now playing..."))
 	} else if vlcPlayer.CheckMediaError() {
-		fmt.Println(Red("Error in playing media"))
+		statusMsg = Red(fmt.Sprintf("%-30s", "Error in playing media"))
 	} else {
-		fmt.Println(Yellow(vlcPlayer.FetchPlayerState()))
+		statusMsg = Yellow(fmt.Sprintf("%-30s", vlcPlayer.FetchPlayerState()))
 	}
 
-	audState := vlcPlayer.GetAudioState()
-	currPos, totPos := (&audState).GetPositionDetails()
+	aud := vlcPlayer.GetAudioState().AudioBasic
+	currPos, totPos := vlcPlayer.GetMediaPosition()
 
-	scale := len((&audState).String())
+	scale := 50
 
+	navMsg := Gray(strings.Repeat("-", scale))
 	if totPos > currPos {
 		scaledCurrPos := int(math.Round((float64(currPos) / float64(totPos)) * float64(scale)))
 		restPosition := scale - scaledCurrPos
 
-		navMsg := Magenta(strings.Repeat(">", scaledCurrPos)) + Gray(strings.Repeat("-", restPosition))
-		fmt.Println(navMsg)
+		navMsg = Magenta(strings.Repeat(">", scaledCurrPos)) + Gray(strings.Repeat("-", restPosition))
 	}
 
-	fmt.Println(&audState)
+	fmt.Printf("%s%10s%10s\n", statusMsg, app.GetFormattedTime(currPos), app.GetFormattedTime(totPos))
+	fmt.Printf("%s\n", navMsg)
+	fmt.Printf("%-30s%20s\n", safeTruncString(aud.Title, 30), safeTruncString(aud.Uploader, 20))
 }
 
 func displayQueue() {
@@ -343,7 +346,8 @@ func appendPlay(arg string) {
 		audio, err := app.GetSong(true)(arg, false)
 		handleErrExit(err)
 
-		vlcPlayer.AppendAudio(audio)
+		err = vlcPlayer.AppendAudio(audio)
+		handleErrExit(err)
 	}
 	if len(vlcPlayer.GetQueue()) < 1 {
 		warnLog("no song in queue for playback")

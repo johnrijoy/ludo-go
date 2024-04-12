@@ -17,9 +17,7 @@ type AudioBasic struct {
 }
 
 func (audioBasic *AudioBasic) GetFormattedDuration() string {
-	formattedDuartion := fmt.Sprintf("%dm%ds", audioBasic.Duration/60, audioBasic.Duration%60)
-
-	return formattedDuartion
+	return GetFormattedTime(audioBasic.Duration)
 }
 
 func (audioBasic *AudioBasic) String() string {
@@ -42,6 +40,7 @@ type AudioDetails struct {
 	AudioBasic
 	AudioStreamUrl   string
 	RelatedAudioList []AudioBasic
+	uid              string
 }
 
 func (audioDetails *AudioDetails) validate() bool {
@@ -57,30 +56,11 @@ func (audioDetails *AudioDetails) validate() bool {
 type AudioState struct {
 	AudioDetails
 	currentTrackIndex int
-	currentPos        int
-	totalLength       int
 }
 
 func (audioState *AudioState) updateAudioState(audioDetails *AudioDetails) {
 	audioUtilsLog.Println("Updating Audio State...")
-	audioState.currentPos = 0
 	audioState.AudioDetails = *audioDetails
-}
-
-func (audioState *AudioState) GetFormattedPosition() string {
-	formattedPos := fmt.Sprintf("%dm%ds", audioState.currentPos/60, audioState.currentPos%60)
-
-	return formattedPos
-}
-
-func (audioState *AudioState) String() string {
-	formattedAudioDetails := fmt.Sprintf("< song: '%s' Pos: %s  duration: %s >", audioState.Title, audioState.GetFormattedPosition(), audioState.GetFormattedDuration())
-
-	return formattedAudioDetails
-}
-
-func (audioState *AudioState) GetPositionDetails() (int, int) {
-	return audioState.currentPos, audioState.totalLength
 }
 
 // Helpers
