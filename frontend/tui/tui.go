@@ -2,7 +2,9 @@ package tui
 
 import (
 	"fmt"
+	"math"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -108,9 +110,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m mainModel) View() string {
 	s := "LudoGo\n"
-	s += fmt.Sprintf("\n%s  | %d / %d\n", m.currentStatus.mediaStatus, m.currentStatus.pos, m.currentStatus.total)
-	s += fmt.Sprintf("%s\n", m.currentStatus.audio.Title)
-	s += fmt.Sprintf("%-20s %10s\n", m.currentStatus.audio.Uploader, m.currentStatus.audio.GetFormattedDuration())
+	s += m.viewCurrentAudio()
 	s += fmt.Sprintf("\n%s\n", m.cmdInput.View())
 
 	if m.mode == commandMode {
@@ -157,14 +157,29 @@ func listenActivity(status chan respStatus) tea.Cmd {
 	}
 }
 
-func (m *mainModel) updateSize(w, h int) {
-	m.width = w
-	m.height = h
+// view current song
 
-	// m.vp = viewport.New(m.w, m.h)
-	// m.vp.Style = borderStyle
+func (m *mainModel) viewCurrentAudio() string {
+	s := ""
 
-	// text := fmt.Sprintf("Size: %d, %d", m.w, m.h)
-	// rendered := textStyle.Copy().Width(m.w).Height(m.h).Render(text)
-	// m.vp.SetContent(rendered)
+	scale := 50
+
+	currPos, totPos := m.currentStatus.pos, m.currentStatus.total
+
+	navMsg := Gray(strings.Repeat("-", scale))
+	if totPos > currPos {
+		scaledCurrPos := int(math.Round((float64(currPos) / float64(totPos)) * float64(scale)))
+		restPosition := scale - scaledCurrPos
+
+		navMsg = Magenta(strings.Repeat(">", scaledCurrPos)) + Gray(strings.Repeat("-", restPosition))
+	}
+
+	s += fmt.Sprintf("%-30s%10s%10s\n", m.currentStatus.mediaStatus, app.GetFormattedTime(currPos), app.GetFormattedTime(totPos))
+	s += fmt.Sprintf("%s\n", navMsg)
+	s += fmt.Sprintf("%-30s%20s\n", safeTruncString(m.currentStatus.audio.Title, 30), safeTruncString(m.currentStatus.audio.Uploader, 20))
+
+	// s += fmt.Sprintf("\n%s  | %s / %s\n", m.currentStatus.mediaStatus, app.GetFormattedTime(m.currentStatus.pos), app.GetFormattedTime(m.currentStatus.total))
+	// s += fmt.Sprintf("%s\n", m.currentStatus.audio.Title)
+	// s += fmt.Sprintf("%-20s %10s\n", m.currentStatus.audio.Uploader, m.currentStatus.audio.GetFormattedDuration())
+	return s
 }
