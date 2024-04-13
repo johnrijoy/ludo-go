@@ -9,6 +9,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/johnrijoy/ludo-go/app"
 	"golang.org/x/term"
 )
@@ -109,9 +110,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m mainModel) View() string {
-	s := "LudoGo\n"
-	s += m.viewCurrentAudio()
-	s += fmt.Sprintf("\n%s\n", m.cmdInput.View())
+	s := ""
 
 	if m.mode == commandMode {
 		if m.resultMsg != "" {
@@ -132,11 +131,13 @@ func (m mainModel) View() string {
 		s += fmt.Sprintf("\nError: %s\n", m.err.Error())
 	}
 
-	s = safeTrimHeight(s, m.height)
-	s = safeTrimWidth(s, m.width)
+	s = lipgloss.JoinVertical(lipgloss.Left, "\n", m.viewCurrentAudio(), m.cmdInput.View(), s)
+
+	// s = safeTrimHeight(s, m.height)
+	// s = safeTrimWidth(s, m.width)
 
 	//s += fmt.Sprintf("TextHeight: %d WindowHeight: %d WindowWidth: %d", height, m.height, m.width)
-	return baseStyle.Render(s)
+	return lipgloss.JoinVertical(lipgloss.Left, m.getAppTitle(), baseStyle.Height(m.height-2).Width(m.width-2).Render(s))
 }
 
 func startActivity(status chan respStatus) tea.Cmd {

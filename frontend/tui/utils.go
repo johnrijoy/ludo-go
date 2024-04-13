@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	appTitle      = "LudoGo"
 	commandPrompt = ">> "
 	commandWidth  = 50
 )
