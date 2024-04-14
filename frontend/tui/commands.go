@@ -306,6 +306,7 @@ func skipIndex(arg string, m *mainModel) {
 		if handleErr(err, m) {
 			return
 		}
+		trackIndex--
 	}
 
 	err := app.MediaPlayer().SkipToIndex(trackIndex)
@@ -334,7 +335,7 @@ func displayQueue(m *mainModel) {
 	m.searchList = make([]string, len(audList))
 	for i, audio := range audList {
 		if qIndex == i {
-			m.highlightIndices = append(m.highlightIndices, i)
+			m.highlightIndices = []int{i}
 		}
 		m.searchList[i] = fmt.Sprintf("%-2d - %-50s | %s", i+1, safeTruncString(audio.Title, 50), safeTruncString(audio.Uploader, 50))
 	}
