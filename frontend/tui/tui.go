@@ -28,17 +28,18 @@ func Run() {
 }
 
 type mainModel struct {
-	cmdInput       textinput.Model
-	currentStatus  respStatus
-	statusChan     chan respStatus
-	resultMsg      string
-	listTitle      string
-	searchList     []string
-	postSearchFunc postIntList
-	mode           imode
-	err            error
-	width, height  int
-	quit           bool
+	cmdInput         textinput.Model
+	currentStatus    respStatus
+	statusChan       chan respStatus
+	resultMsg        string
+	listTitle        string
+	searchList       []string
+	highlightIndices []int
+	postSearchFunc   postIntList
+	mode             imode
+	err              error
+	width, height    int
+	quit             bool
 }
 
 func newMainModel() mainModel {
@@ -120,11 +121,19 @@ func (m mainModel) View() string {
 
 	if m.mode == listMode || m.mode == interactiveListMode {
 		s += fmt.Sprintln()
+
 		dispWidth := getBaseHorizontalWidth(&m)
 		for i, item := range m.searchList {
-			s += safeTruncString(fmt.Sprintf("%-2d - %s", i+1, item), dispWidth)
+			itemView := safeTruncString(item, dispWidth)
+			if sliceContains(m.highlightIndices, i) {
+				itemView = Magenta(itemView)
+			}
+			s += itemView
 			s += "\n"
 		}
+
+		// s += lipgloss.JoinHorizontal(lipgloss.Left, m.searchList...)
+		// s += "\n"
 	}
 
 	if m.err != nil {
@@ -133,7 +142,7 @@ func (m mainModel) View() string {
 
 	s = lipgloss.JoinVertical(lipgloss.Left, "\n", m.viewCurrentAudio(), m.cmdInput.View(), s)
 
-	// s = safeTrimHeight(s, m.height)
+	s = safeTrimHeight(s, m.height-4)
 	// s = safeTrimWidth(s, m.width)
 
 	//s += fmt.Sprintf("TextHeight: %d WindowHeight: %d WindowWidth: %d", height, m.height, m.width)
@@ -164,6 +173,10 @@ func (m *mainModel) viewCurrentAudio() string {
 	s := ""
 
 	scale := 50
+	dispWidth := getBaseHorizontalWidth(m)
+	if dispWidth < scale && dispWidth > 0 {
+		scale = dispWidth
+	}
 
 	currPos, totPos := m.currentStatus.pos, m.currentStatus.total
 
@@ -175,9 +188,18 @@ func (m *mainModel) viewCurrentAudio() string {
 		navMsg = Magenta(strings.Repeat(">", scaledCurrPos)) + Gray(strings.Repeat("-", restPosition))
 	}
 
-	s += fmt.Sprintf("%-30s%10s%10s\n", m.currentStatus.mediaStatus, app.GetFormattedTime(currPos), app.GetFormattedTime(totPos))
+	audTitle := safeTruncString(m.currentStatus.audio.Title, 30)
+	audUploader := safeTruncString(m.currentStatus.audio.Uploader, 20)
+
+	s += fmt.Sprintf("%s%s%s\n",
+		NoStyle.Width(scale*3/5).Render(m.currentStatus.mediaStatus.String()),
+		NoStyle.Width(scale/5).AlignHorizontal(lipgloss.Right).Render(app.GetFormattedTime(currPos)),
+		NoStyle.Width(scale/5).AlignHorizontal(lipgloss.Right).Render(app.GetFormattedTime(totPos)),
+	)
 	s += fmt.Sprintf("%s\n", navMsg)
-	s += fmt.Sprintf("%-30s%20s\n", safeTruncString(m.currentStatus.audio.Title, 30), safeTruncString(m.currentStatus.audio.Uploader, 20))
+	s += fmt.Sprintf("%s%s\n",
+		Aqua.Width(scale*3/5).Render(audTitle),
+		AquaD.Width(scale*2/5).AlignHorizontal(lipgloss.Right).Render(audUploader))
 
 	// s += fmt.Sprintf("\n%s  | %s / %s\n", m.currentStatus.mediaStatus, app.GetFormattedTime(m.currentStatus.pos), app.GetFormattedTime(m.currentStatus.total))
 	// s += fmt.Sprintf("%s\n", m.currentStatus.audio.Title)

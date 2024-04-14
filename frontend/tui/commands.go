@@ -113,7 +113,9 @@ func doInterativeList(ind string, m *mainModel) {
 func appendPlay(arg string, m *mainModel) {
 	if arg != "" {
 		audio, err := app.GetSong(true)(arg, false)
-		handleErr(err, m)
+		if handleErr(err, m) {
+			return
+		}
 
 		app.MediaPlayer().AppendAudio(audio)
 	}
@@ -170,7 +172,7 @@ func searchPlay(arg string, m *mainModel) {
 
 	m.searchList = make([]string, len(*audioBasicList))
 	for i, audio := range *audioBasicList {
-		m.searchList[i] = fmt.Sprintf("%-30s | %-20s | %s", safeTruncString(audio.Title, 30), safeTruncString(audio.Uploader, 20), audio.GetFormattedDuration())
+		m.searchList[i] = fmt.Sprintf("%-2d - %-30s | %-20s | %s", i+1, safeTruncString(audio.Title, 30), safeTruncString(audio.Uploader, 20), audio.GetFormattedDuration())
 	}
 
 	setInteractiveListMode(m, "> Enter index number (q to escape): ")
@@ -229,7 +231,7 @@ func displayApiList(m *mainModel) {
 	m.searchList = make([]string, len(apiList))
 
 	for i, inst := range apiList {
-		m.searchList[i] = fmt.Sprintf("%s\n", inst)
+		m.searchList[i] = fmt.Sprintf("%-2d - %s\n", i+1, inst)
 	}
 
 	setInteractiveListMode(m, "> Enter index number to change api (q to escape): ")
@@ -331,11 +333,10 @@ func displayQueue(m *mainModel) {
 
 	m.searchList = make([]string, len(audList))
 	for i, audio := range audList {
-		msg := fmt.Sprintf("%-50s | %-50s", safeTruncString(audio.Title, 50), safeTruncString(audio.Uploader, 50))
 		if qIndex == i {
-			msg = Magenta(msg)
+			m.highlightIndices = append(m.highlightIndices, i)
 		}
-		m.searchList[i] = msg
+		m.searchList[i] = fmt.Sprintf("%-2d - %-50s | %s", i+1, safeTruncString(audio.Title, 50), safeTruncString(audio.Uploader, 50))
 	}
 
 	setListMode(m)
@@ -385,7 +386,7 @@ func fetchSongList(arg string, m *mainModel) {
 
 	m.searchList = make([]string, len(audDocs))
 	for i, audDoc := range audDocs {
-		m.searchList[i] = fmt.Sprintf("%-30s | %-20s | %s", safeTruncString(audDoc.Title, 30), safeTruncString(audDoc.Uploader, 20), audDoc.GetFormattedDuration())
+		m.searchList[i] = fmt.Sprintf("%-2d - %-30s | %-20s | %s", i+1, safeTruncString(audDoc.Title, 30), safeTruncString(audDoc.Uploader, 20), audDoc.GetFormattedDuration())
 	}
 
 	setListMode(m)

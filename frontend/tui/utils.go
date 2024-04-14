@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	appTitle      = "LudoGo"
+	appTitle      = " Ludo Go "
 	commandPrompt = ">> "
 	commandWidth  = 50
 )
@@ -138,7 +138,7 @@ func safeTruncString(label string, max int) string {
 
 func safeTrimHeight(display string, termHeight int) string {
 	textHeight := strings.Count(display, "\n")
-	if textHeight > termHeight {
+	if textHeight > termHeight && termHeight > 0 {
 		display = strings.Join(strings.Split(display, "\n")[0:termHeight], "\n")
 	}
 	return display
@@ -161,4 +161,13 @@ func safeTrimView(display string, termWidth, termHeight int) string {
 	display = safeTrimHeight(display, termHeight)
 	display = safeTrimWidth(display, termWidth)
 	return display
+}
+
+func sliceContains[T comparable](s []T, e T) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }
