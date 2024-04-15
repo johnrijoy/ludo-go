@@ -96,6 +96,9 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// 	m.updateSize(w, h)
 		// }
 		return m, tea.Batch(resizeTicker, func() tea.Msg { return tea.WindowSizeMsg{Width: w, Height: h} })
+	case respStatus:
+		m.currentStatus = msg
+		return m, listenActivity(m.statusChan)
 	}
 
 	// help mode
@@ -160,9 +163,6 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.resultMsg = ""
 			return m, nil
 		}
-	case respStatus:
-		m.currentStatus = msg
-		return m, listenActivity(m.statusChan)
 	}
 
 	return m, cmd
