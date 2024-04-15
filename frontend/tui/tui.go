@@ -21,6 +21,8 @@ func Run() {
 	}
 	defer app.Close()
 
+	isPiped = app.IsSourcePiped()
+
 	p := tea.NewProgram(newMainModel())
 
 	if _, err := p.Run(); err != nil {
@@ -199,7 +201,11 @@ func (m mainModel) View() string {
 	}
 
 	if m.err != nil {
-		s += fmt.Sprintf("\nError: %s\n", m.err.Error())
+		if _, ok := m.err.(ErrWarn); ok {
+			s += fmt.Sprintf("\n%s %s\n", Yellow("WARN:"), m.err.Error())
+		} else {
+			s += fmt.Sprintf("\n%s %s\n", Red("ERROR:"), m.err.Error())
+		}
 	}
 
 	s = lipgloss.JoinVertical(lipgloss.Left, "\n", m.viewCurrentAudio(), m.cmdInput.View(), s)

@@ -11,10 +11,16 @@ import (
 )
 
 var pipedLog = log.New(io.Discard, "pipedLog: ", log.LstdFlags)
+var allowAllMusicFilter bool = false
 
 func getPipedApiMusicId(search string) (string, error) {
 	escapedSearch := url.QueryEscape(search)
-	target := Piped.GetPipedApi() + "/search?q=" + escapedSearch + "&filter=music_songs"
+	target := Piped.GetPipedApi() + "/search?q=" + escapedSearch + "&filter="
+	if allowAllMusicFilter {
+		target += "all"
+	} else {
+		target += "music_songs"
+	}
 
 	pipedLog.Println("target: ", target)
 
@@ -140,7 +146,12 @@ func getPipedApiRelatedSongs(response interface{}) []AudioBasic {
 
 func getPipedSearchList(search string, offset int, limit int) (*[]AudioBasic, error) {
 	escapedSearch := url.QueryEscape(search)
-	target := Piped.GetPipedApi() + "/search?q=" + escapedSearch + "&filter=music_songs"
+	target := Piped.GetPipedApi() + "/search?q=" + escapedSearch + "&filter="
+	if allowAllMusicFilter {
+		target += "all"
+	} else {
+		target += "music_songs"
+	}
 
 	pipedLog.Println("target: ", target)
 

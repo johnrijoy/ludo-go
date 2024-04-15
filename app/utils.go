@@ -15,6 +15,7 @@ const (
 
 // properties file
 const (
+	isSourcePiped          = "config.source.isPiped"
 	isCacheEnabledKey      = "config.cache.enabled"
 	dataStoreKey           = "config.database.path"
 	cacheDirKey            = "config.cache.path"

@@ -100,3 +100,11 @@ func setPipedConfig(props properties.Properties) {
 	Piped.apiUrl = props.GetString(pipedApiKey, defaultPipedApi)
 	Piped.instanceListApi = props.GetString(instanceListApiKey, defaultInstanceListApi)
 }
+
+func SetPipedAllFilterType(allow bool) {
+	allowAllMusicFilter = allow
+}
+
+func GetPipedAllFilterType() bool {
+	return allowAllMusicFilter
+}

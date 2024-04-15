@@ -10,6 +10,8 @@ import (
 	"github.com/johnrijoy/ludo-go/frontend"
 )
 
+var isPiped bool
+
 func doCommand(cmd string, m *mainModel) {
 	setCommandMode(m)
 
@@ -71,6 +73,9 @@ func doCommand(cmd string, m *mainModel) {
 	case "listApi":
 		displayApiList(m)
 
+	case "setSource", "ss":
+		setSource(arg, m)
+
 	case "version":
 		displayVersion(m)
 
@@ -108,13 +113,24 @@ func doInterativeList(ind string, m *mainModel) {
 	m.postSearchFunc(i, m)
 }
 
-// Commands
+// Audio Search
 
 func appendPlay(arg string, m *mainModel) {
 	if arg != "" {
-		audio, err := app.GetSong(true)(arg, false)
+
+		if strings.HasPrefix(arg, "/a") && isPiped {
+			app.SetPipedAllFilterType(true)
+			aft, _ := strings.CutPrefix(arg, "/a")
+			arg = strings.TrimSpace(aft)
+		}
+
+		audio, err := app.GetSong(isPiped)(arg, false)
 		if handleErr(err, m) {
 			return
+		}
+
+		if isPiped && app.GetPipedAllFilterType() {
+			app.SetPipedAllFilterType(false)
 		}
 
 		app.MediaPlayer().AppendAudio(audio)
@@ -139,7 +155,7 @@ func radioPlay(arg string, m *mainModel) {
 		removeAllIndex("", m)
 	} else {
 		var err error
-		audio, err = app.GetSong(false)(arg, false)
+		audio, err = app.GetSong(isPiped)(arg, false)
 		handleErr(err, m)
 
 		err = app.MediaPlayer().ResetPlayer()
@@ -150,8 +166,10 @@ func radioPlay(arg string, m *mainModel) {
 	}
 
 	go func() {
-		audioList, err := app.GetPlayList(false)(audio.YtId, true, 1, 10)
-		handleErr(err, m)
+		audioList, err := app.GetPlayList(isPiped)(audio.YtId, true, 1, 10)
+		if handleErr(err, m) {
+			return
+		}
 
 		for _, audio := range *audioList {
 			app.MediaPlayer().AppendAudio(&audio)
@@ -165,9 +183,19 @@ func searchPlay(arg string, m *mainModel) {
 		return
 	}
 
-	audioBasicList, err := app.GetSearchList(true)(arg, 0, 10)
+	if strings.HasPrefix(arg, "/a") && isPiped {
+		app.SetPipedAllFilterType(true)
+		aft, _ := strings.CutPrefix(arg, "/a")
+		arg = strings.TrimSpace(aft)
+	}
+
+	audioBasicList, err := app.GetSearchList(isPiped)(arg, 0, 10)
 	if handleErr(err, m) {
 		return
+	}
+
+	if isPiped && app.GetPipedAllFilterType() {
+		app.SetPipedAllFilterType(false)
 	}
 
 	m.searchList = make([]string, len(*audioBasicList))
@@ -180,7 +208,7 @@ func searchPlay(arg string, m *mainModel) {
 	m.postSearchFunc = func(index int, m *mainModel) {
 		audioBasic := (*audioBasicList)[index]
 
-		audio, err := app.GetSong(true)(audioBasic.YtId, true)
+		audio, err := app.GetSong(isPiped)(audioBasic.YtId, true)
 		if handleErr(err, m) {
 			return
 		}
@@ -208,78 +236,6 @@ func removeAllIndex(arg string, m *mainModel) {
 	}
 
 	err := app.MediaPlayer().RemoveAllAudioFromIndex(trackIndex)
-	handleErr(err, m)
-}
-
-// To be modified
-func displayVersion(m *mainModel) {
-	s := fmt.Sprintln("Ludo version: ", Green(app.Version))
-	s += fmt.Sprintln("Api: ", Green(app.Piped.GetPipedApi()))
-	s += fmt.Sprintln("libVlc Binding Version: ", Green(app.Info().String()))
-	s += fmt.Sprintln("Vlc Runtime Version: ", Green(app.Info().Changeset()))
-
-	m.resultMsg = s
-}
-
-func displayApiList(m *mainModel) {
-	apiList, err := app.Piped.GetPipedInstanceList()
-	if err != nil {
-		handleErr(errors.Join(errors.New("error in fetching Instance list"), err), m)
-		return
-	}
-
-	m.searchList = make([]string, len(apiList))
-
-	for i, inst := range apiList {
-		m.searchList[i] = fmt.Sprintf("%-2d - %s\n", i+1, inst)
-	}
-
-	setInteractiveListMode(m, "> Enter index number to change api (q to escape): ")
-
-	m.postSearchFunc = func(index int, m *mainModel) {
-		newApi := apiList[index].ApiUrl
-		app.Piped.SetPipedApi(newApi)
-	}
-}
-
-func modifyApi(arg string, m *mainModel) {
-	if arg == "" {
-		handleErr(Warn("no arguments"), m)
-		return
-	}
-
-	app.Piped.SetPipedApi(arg)
-	m.resultMsg = fmt.Sprintln("Api changed from ", Gray(app.Piped.GetOldPipedApi()), " to ", Green(app.Piped.GetPipedApi()))
-}
-
-func resetPlayer(m *mainModel) {
-	err := app.MediaPlayer().ResetPlayer()
-	handleErr(err, m)
-}
-
-func audioRewind(arg string, m *mainModel) {
-	duration := defaultForwardRewind
-	if arg != "" {
-		var err error
-		duration, err = strconv.Atoi(arg)
-		if handleErr(err, m) {
-			return
-		}
-	}
-	err := app.MediaPlayer().RewindBySeconds(duration)
-	handleErr(err, m)
-}
-
-func audioForward(arg string, m *mainModel) {
-	duration := defaultForwardRewind
-	if arg != "" {
-		var err error
-		duration, err = strconv.Atoi(arg)
-		if handleErr(err, m) {
-			return
-		}
-	}
-	err := app.MediaPlayer().ForwardBySeconds(duration)
 	handleErr(err, m)
 }
 
@@ -323,24 +279,36 @@ func skipNext(m *mainModel) {
 	handleErr(err, m)
 }
 
-func displayQueue(m *mainModel) {
-	audList := app.MediaPlayer().GetQueue()
-	qIndex := app.MediaPlayer().GetQueueIndex()
-
-	if len(audList) == 0 {
-		handleErr(Warn("no songs in queue"), m)
-		return
-	}
-
-	m.searchList = make([]string, len(audList))
-	for i, audio := range audList {
-		if qIndex == i {
-			m.highlightIndices = []int{i}
+// media playback control
+func audioRewind(arg string, m *mainModel) {
+	duration := defaultForwardRewind
+	if arg != "" {
+		var err error
+		duration, err = strconv.Atoi(arg)
+		if handleErr(err, m) {
+			return
 		}
-		m.searchList[i] = fmt.Sprintf("%-2d - %-50s | %s", i+1, safeTruncString(audio.Title, 50), safeTruncString(audio.Uploader, 50))
 	}
+	err := app.MediaPlayer().RewindBySeconds(duration)
+	handleErr(err, m)
+}
 
-	setListMode(m)
+func audioForward(arg string, m *mainModel) {
+	duration := defaultForwardRewind
+	if arg != "" {
+		var err error
+		duration, err = strconv.Atoi(arg)
+		if handleErr(err, m) {
+			return
+		}
+	}
+	err := app.MediaPlayer().ForwardBySeconds(duration)
+	handleErr(err, m)
+}
+
+func resetPlayer(m *mainModel) {
+	err := app.MediaPlayer().ResetPlayer()
+	handleErr(err, m)
 }
 
 func modifyVolume(arg string, m *mainModel) {
@@ -359,6 +327,67 @@ func modifyVolume(arg string, m *mainModel) {
 	if !handleErr(err, m) {
 		m.resultMsg = fmt.Sprintln("volume set:", Green(fmt.Sprintf("%d", vol)))
 	}
+}
+
+// Info commands
+func displayVersion(m *mainModel) {
+	s := fmt.Sprintln("Ludo version: ", Green(app.Version))
+	s += fmt.Sprintln("Api: ", Green(app.Piped.GetPipedApi()))
+	s += fmt.Sprintln("libVlc Binding Version: ", Green(app.Info().String()))
+	s += fmt.Sprintln("Vlc Runtime Version: ", Green(app.Info().Changeset()))
+
+	m.resultMsg = s
+}
+
+func displayApiList(m *mainModel) {
+	apiList, err := app.Piped.GetPipedInstanceList()
+	if err != nil {
+		handleErr(errors.Join(errors.New("error in fetching Instance list"), err), m)
+		return
+	}
+
+	m.searchList = make([]string, len(apiList))
+
+	for i, inst := range apiList {
+		m.searchList[i] = fmt.Sprintf("%-2d - %s\n", i+1, inst)
+	}
+
+	setInteractiveListMode(m, "> Enter index number to change api (q to escape): ")
+
+	m.postSearchFunc = func(index int, m *mainModel) {
+		newApi := apiList[index].ApiUrl
+		app.Piped.SetPipedApi(newApi)
+	}
+}
+
+func modifyApi(arg string, m *mainModel) {
+	if arg == "" {
+		handleErr(Warn("no arguments"), m)
+		return
+	}
+
+	app.Piped.SetPipedApi(arg)
+	m.resultMsg = fmt.Sprintln("Api changed from ", Gray(app.Piped.GetOldPipedApi()), " to ", Green(app.Piped.GetPipedApi()))
+}
+
+func displayQueue(m *mainModel) {
+	audList := app.MediaPlayer().GetQueue()
+	qIndex := app.MediaPlayer().GetQueueIndex()
+
+	if len(audList) == 0 {
+		handleErr(Warn("no songs in queue"), m)
+		return
+	}
+
+	m.searchList = make([]string, len(audList))
+	for i, audio := range audList {
+		if qIndex == i {
+			m.highlightIndices = []int{i}
+		}
+		m.searchList[i] = fmt.Sprintf("%-2d - %-50s | %s", i+1, safeTruncString(audio.Title, 50), safeTruncString(audio.Uploader, 50))
+	}
+
+	setListMode(m)
 }
 
 func fetchSongList(arg string, m *mainModel) {
@@ -408,6 +437,30 @@ func likeSong(arg string, m *mainModel) {
 		return
 	}
 	app.AudioDb().UpdateLikes(app.MediaPlayer().GetQueue()[trackIndex].YtId)
+}
+
+func setSource(arg string, m *mainModel) {
+
+	if arg == "" {
+		if isPiped {
+			m.resultMsg = "Source is Piped"
+		} else {
+			m.resultMsg = "Source is Youtube"
+		}
+		return
+	}
+
+	switch arg {
+	case "youtube", "yt":
+		isPiped = false
+		m.resultMsg = "Source changed to Youtube"
+	case "piped", "pp":
+		isPiped = true
+		m.resultMsg = "Source changed to Piped"
+	default:
+		handleErr(Warn("Source not valid (youtube/yt, piped/pp)"), m)
+		return
+	}
 }
 
 func showStartupMessage(m *mainModel) {
