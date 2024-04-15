@@ -75,7 +75,7 @@ func doCommand(cmd string, m *mainModel) {
 		displayVersion(m)
 
 	case "help":
-		showHelp(m)
+		setHelpMode(m)
 
 	case "quit":
 		m.quit = true
@@ -411,14 +411,16 @@ func likeSong(arg string, m *mainModel) {
 }
 
 func showStartupMessage(m *mainModel) {
-	fmt.Println(Blue("==="), Magenta("LUDO GO"), Blue("==="))
 	fmt.Println("Welcome to", Magenta("LudoGo"))
 	fmt.Println("To start listening, enter " + Green("play <song name>"))
 	fmt.Println("To show help, enter " + Green("help"))
 }
 
-func showHelp(m *mainModel) {
-	displayList := func(items []string) {
+func showHelp() string {
+	var help strings.Builder
+
+	displayList := func(items []string) string {
+		s := ""
 		for _, val := range items {
 			splitVal := strings.Split(val, "-")
 			cmd, help := splitVal[0], strings.Join(splitVal[1:], "-")
@@ -431,12 +433,16 @@ func showHelp(m *mainModel) {
 				helpMsg += usageMsg
 			}
 
-			fmt.Printf("%-40s - %s\n", Green(cmd), helpMsg)
-		}
-	}
-	fmt.Println("Commands")
-	displayList(frontend.Commands)
+			s += fmt.Sprintf("%-40s - %s\n", Green(cmd), helpMsg)
 
-	fmt.Println("\nProperties")
-	displayList(frontend.Configs)
+		}
+		return s
+	}
+	help.WriteString("Commands\n")
+	help.WriteString(displayList(frontend.Commands))
+
+	help.WriteString("\nProperties\n")
+	help.WriteString(displayList(frontend.Configs))
+
+	return help.String()
 }

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/johnrijoy/ludo-go/app"
@@ -28,15 +29,18 @@ func Run() {
 }
 
 type mainModel struct {
-	cmdInput         textinput.Model
 	currentStatus    respStatus
 	statusChan       chan respStatus
+	cmdInput         textinput.Model
+	cmdHist          []string
+	cmdHistIndex     int
 	resultMsg        string
 	listTitle        string
 	searchList       []string
 	highlightIndices []int
 	postSearchFunc   postIntList
 	mode             imode
+	help             viewport.Model
 	err              error
 	width, height    int
 	quit             bool
@@ -57,11 +61,18 @@ func newMainModel() mainModel {
 
 	m.mode = commandMode
 	m.quit = false
+
+	m.help = viewport.New(50, 50)
+	m.help.SetContent(showHelp())
+	m.help.KeyMap = viewport.DefaultKeyMap()
+	m.help.Init()
+	//m.help.HighPerformanceRendering = true
+
 	return m
 }
 
 func (m mainModel) Init() tea.Cmd {
-	return tea.Batch(tea.EnterAltScreen, startActivity(m.statusChan), listenActivity(m.statusChan), resizeTicker)
+	return tea.Batch(tea.SetWindowTitle("Ludo Go"), tea.EnterAltScreen, startActivity(m.statusChan), listenActivity(m.statusChan), resizeTicker)
 }
 
 func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -70,31 +81,9 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if m.quit {
 		return m, tea.Quit
 	}
-	m.cmdInput, cmd = m.cmdInput.Update(msg)
 
+	// General events
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.Type.String() {
-		case "ctrl+c", "esc":
-			return m, tea.Quit
-		case "enter":
-			inp := m.cmdInput.Value()
-			if m.mode == interactiveListMode {
-				doInterativeList(inp, &m)
-			} else {
-				doCommand(inp, &m)
-			}
-			m.cmdInput.Reset()
-
-			return m, m.cmdInput.Focus()
-		case "runes":
-			m.err = nil
-			m.resultMsg = ""
-			return m, nil
-		}
-	case respStatus:
-		m.currentStatus = msg
-		return m, listenActivity(m.statusChan)
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
@@ -107,11 +96,84 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(resizeTicker, func() tea.Msg { return tea.WindowSizeMsg{Width: w, Height: h} })
 	}
 
+	// help mode
+	if m.mode == helpMode {
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch msg.Type.String() {
+			case "esc":
+				setCommandMode(&m)
+				return m, nil
+			}
+		}
+		var cmd tea.Cmd
+		m.help, cmd = m.help.Update(msg)
+		return m, cmd
+	}
+
+	m.cmdInput, cmd = m.cmdInput.Update(msg)
+	// Player events
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.Type.String() {
+		case "ctrl+c":
+			return m, tea.Quit
+		case "ctrl+h":
+			setHelpMode(&m)
+			m.help, cmd = m.help.Update(msg)
+			return m, cmd
+		case "enter":
+			inp := m.cmdInput.Value()
+			if m.mode == interactiveListMode {
+				doInterativeList(inp, &m)
+			} else {
+				doCommand(inp, &m)
+			}
+			m.cmdHist = append(m.cmdHist, inp)
+			m.cmdHistIndex = len(m.cmdHist)
+			m.cmdInput.Reset()
+
+			return m, m.cmdInput.Focus()
+		case "up":
+			m.cmdHistIndex--
+			if m.cmdHistIndex < 0 {
+				m.cmdHistIndex = 0
+			}
+			if len(m.cmdHist) > 0 {
+				m.cmdInput.SetValue(m.cmdHist[m.cmdHistIndex])
+			}
+		case "down":
+			m.cmdHistIndex++
+			if m.cmdHistIndex >= len(m.cmdHist) {
+				m.cmdHistIndex = len(m.cmdHist)
+			}
+			if m.cmdHistIndex == len(m.cmdHist) {
+				m.cmdInput.Reset()
+			} else {
+				val := m.cmdHist[m.cmdHistIndex]
+				m.cmdInput.SetValue(val)
+			}
+		case "runes":
+			m.err = nil
+			m.resultMsg = ""
+			return m, nil
+		}
+	case respStatus:
+		m.currentStatus = msg
+		return m, listenActivity(m.statusChan)
+	}
+
 	return m, cmd
 }
 
 func (m mainModel) View() string {
 	s := ""
+
+	if m.mode == helpMode {
+		m.help.Height = m.height - 4
+		m.help.Width = getBaseHorizontalWidth(&m)
+		return lipgloss.JoinVertical(lipgloss.Left, m.getAppTitle(), baseStyle.Height(m.height-2).Width(m.width-2).Render(m.help.View()))
+	}
 
 	if m.mode == commandMode {
 		if m.resultMsg != "" {

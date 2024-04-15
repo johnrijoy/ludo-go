@@ -31,7 +31,31 @@ const (
 	commandMode imode = iota
 	listMode
 	interactiveListMode
+	helpMode
 )
+
+// Change tui state
+func setInteractiveListMode(m *mainModel, prompt string) {
+	m.mode = interactiveListMode
+	m.cmdInput.Prompt = prompt
+	m.cmdInput.Width = 5
+}
+
+func setListMode(m *mainModel) {
+	m.mode = listMode
+}
+
+func setCommandMode(m *mainModel) {
+	m.mode = commandMode
+	m.cmdInput.Prompt = commandPrompt
+	m.cmdInput.Width = commandWidth
+	m.cmdInput.Focus()
+}
+
+func setHelpMode(m *mainModel) {
+	m.cmdInput.Blur()
+	m.mode = helpMode
+}
 
 // media stat
 type mediaStat uint8
@@ -86,23 +110,6 @@ func (w ErrWarn) Error() string {
 
 // post Interactive List func type
 type postIntList func(index int, m *mainModel)
-
-// Change tui state
-func setInteractiveListMode(m *mainModel, prompt string) {
-	m.mode = interactiveListMode
-	m.cmdInput.Prompt = prompt
-	m.cmdInput.Width = 5
-}
-
-func setListMode(m *mainModel) {
-	m.mode = listMode
-}
-
-func setCommandMode(m *mainModel) {
-	m.mode = commandMode
-	m.cmdInput.Prompt = commandPrompt
-	m.cmdInput.Width = commandWidth
-}
 
 // helpers
 func parseCommand(command string) (string, string) {
