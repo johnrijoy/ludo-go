@@ -199,6 +199,7 @@ func searchPlay(arg string, m *mainModel) {
 	}
 
 	m.searchList = make([]string, len(*audioBasicList))
+	m.highlightIndices = []int{}
 	for i, audio := range *audioBasicList {
 		m.searchList[i] = fmt.Sprintf("%-2d - %-30s | %-20s | %s", i+1, safeTruncString(audio.Title, 30), safeTruncString(audio.Uploader, 20), audio.GetFormattedDuration())
 	}
@@ -347,7 +348,7 @@ func displayApiList(m *mainModel) {
 	}
 
 	m.searchList = make([]string, len(apiList))
-
+	m.highlightIndices = []int{}
 	for i, inst := range apiList {
 		m.searchList[i] = fmt.Sprintf("%-2d - %s\n", i+1, inst)
 	}
@@ -380,6 +381,7 @@ func displayQueue(m *mainModel) {
 	}
 
 	m.searchList = make([]string, len(audList))
+	m.highlightIndices = []int{}
 	for i, audio := range audList {
 		if qIndex == i {
 			m.highlightIndices = []int{i}
@@ -415,6 +417,7 @@ func fetchSongList(arg string, m *mainModel) {
 	}
 
 	m.searchList = make([]string, len(audDocs))
+	m.highlightIndices = []int{}
 	for i, audDoc := range audDocs {
 		m.searchList[i] = fmt.Sprintf("%-2d - %-30s | %-20s | %s", i+1, safeTruncString(audDoc.Title, 30), safeTruncString(audDoc.Uploader, 20), audDoc.GetFormattedDuration())
 	}
