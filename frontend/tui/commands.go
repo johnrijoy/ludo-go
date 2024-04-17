@@ -12,6 +12,7 @@ import (
 
 var isPiped bool
 
+// parses the user's command and interacts with media player accordingly
 func doCommand(cmd string, m *mainModel) {
 	setCommandMode(m)
 
@@ -90,6 +91,7 @@ func doCommand(cmd string, m *mainModel) {
 
 }
 
+// parses the user's input for interactive list and carries the respective post interaction function
 func doInterativeList(ind string, m *mainModel) {
 	defer setCommandMode(m)
 
@@ -112,6 +114,8 @@ func doInterativeList(ind string, m *mainModel) {
 
 	m.postSearchFunc(i, m)
 }
+
+// Media Player interactions
 
 // Audio Search
 
@@ -183,6 +187,7 @@ func searchPlay(arg string, m *mainModel) {
 		return
 	}
 
+	// hack to remove music filter for Piped source only
 	if strings.HasPrefix(arg, "/a") && isPiped {
 		app.SetPipedAllFilterType(true)
 		aft, _ := strings.CutPrefix(arg, "/a")
@@ -194,6 +199,7 @@ func searchPlay(arg string, m *mainModel) {
 		return
 	}
 
+	// reset the music filter
 	if isPiped && app.GetPipedAllFilterType() {
 		app.SetPipedAllFilterType(false)
 	}

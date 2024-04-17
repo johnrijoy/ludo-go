@@ -15,6 +15,7 @@ import (
 	"golang.org/x/term"
 )
 
+// will launch the TUI
 func Run() {
 	if err := app.Init(); err != nil {
 		panic(err)
@@ -168,18 +169,21 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m mainModel) View() string {
 	s := ""
 
+	// help screen
 	if m.mode == helpMode {
 		m.help.Height = m.height - 4
 		m.help.Width = getBaseHorizontalWidth(&m)
 		return lipgloss.JoinVertical(lipgloss.Left, m.getAppTitle(), baseStyle.Height(m.height-2).Width(m.width-2).Render(m.help.View()))
 	}
 
+	// result in case of command mode
 	if m.mode == commandMode {
 		if m.resultMsg != "" {
 			s += fmt.Sprintf("\n%s\n", m.resultMsg)
 		}
 	}
 
+	// for list or interactive list mode
 	if m.mode == listMode || m.mode == interactiveListMode {
 		s += fmt.Sprintln()
 
@@ -197,6 +201,7 @@ func (m mainModel) View() string {
 		// s += "\n"
 	}
 
+	// error display
 	if m.err != nil {
 		if _, ok := m.err.(ErrWarn); ok {
 			s += fmt.Sprintf("\n%s %s\n", Yellow("WARN:"), m.err.Error())
@@ -205,8 +210,10 @@ func (m mainModel) View() string {
 		}
 	}
 
+	// assembling other components
 	s = lipgloss.JoinVertical(lipgloss.Left, "\n", m.viewCurrentAudio(), m.cmdInput.View(), s)
 
+	// trimming excess height
 	s = safeTrimHeight(s, m.height-4)
 	// s = safeTrimWidth(s, m.width)
 
@@ -214,6 +221,9 @@ func (m mainModel) View() string {
 	return lipgloss.JoinVertical(lipgloss.Left, m.getAppTitle(), baseStyle.Height(m.height-2).Width(m.width-2).Render(s))
 }
 
+// returns a bubble tea command which
+// will regularly poll the mediaPlayer for audio status and
+// push them in a channel
 func startActivity(status chan respStatus) tea.Cmd {
 	return func() tea.Msg {
 		for {
@@ -226,14 +236,15 @@ func startActivity(status chan respStatus) tea.Cmd {
 	}
 }
 
+// returns a bubble tea command which
+// will fetch audio status from channel and return it
 func listenActivity(status chan respStatus) tea.Cmd {
 	return func() tea.Msg {
 		return <-status
 	}
 }
 
-// view current song
-
+// builds the live UI for currently playing audio
 func (m *mainModel) viewCurrentAudio() string {
 	s := ""
 
