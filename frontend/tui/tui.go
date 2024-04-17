@@ -64,11 +64,8 @@ func newMainModel() mainModel {
 	m.mode = commandMode
 	m.quit = false
 
-	m.help = viewport.New(50, 50)
+	m.help = viewport.New(50, 10)
 	m.help.SetContent(showHelp())
-	m.help.KeyMap = viewport.DefaultKeyMap()
-	m.help.Init()
-	//m.help.HighPerformanceRendering = true
 
 	return m
 }
