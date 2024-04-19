@@ -1,0 +1,35 @@
+# This workflow will build a golang project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+
+name: Go
+
+on: workflow_dispatch
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.20'
+        
+    - name: Pull libvlc library
+      run: |
+        wget https://www.nuget.org/api/v2/package/VideoLAN.LibVLC.Windows/3.0.0
+        unzip videolan.libvlc.windows.3.0.0.nupkg -d libvlc-extract
+        pwd
+        ls libvlc-extract
+
+    - name: Build
+      env:
+        CGO_ENABLED: 1
+        CGO_CFLAGS: "-Ilibvlc-extract/"
+        CGO_LDFLAGS: "-L/libvlc-extract"
+      run: go build -v ./...
+
+    - name: Test
+      run: go test -v ./...
