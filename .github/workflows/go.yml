@@ -36,5 +36,6 @@ jobs:
         GOARCH: amd64
         CC: "x86_64-w64-mingw32-gcc-win32"
       run: |
-        go build -v -o bin/ludo.exe ./... 
-        ls bin
+        mkdir nbin
+        go build -v -o nbin ./... 
+        ls nbin
