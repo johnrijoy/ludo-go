@@ -19,9 +19,9 @@ jobs:
         
     - name: Pull libvlc library
       run: |
-        wget https://www.nuget.org/api/v2/package/VideoLAN.LibVLC.Windows/3.0.0
-        unzip videolan.libvlc.windows.3.0.0.nupkg -d libvlc-extract
         pwd
+        wget -q -O libvlc.zip https://www.nuget.org/api/v2/package/VideoLAN.LibVLC.Windows/3.0.0
+        unzip libvlc.zip -d libvlc-extract
         ls libvlc-extract
 
     - name: Build
