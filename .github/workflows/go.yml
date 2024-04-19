@@ -39,3 +39,9 @@ jobs:
         mkdir nbin
         go build -v -o nbin ./... 
         ls nbin
+
+    - name: Upload binaries
+      uses: actions/upload-artifact@v4
+      with:
+        name: ludo-bin
+        path: nbin/ludo-go.exe
