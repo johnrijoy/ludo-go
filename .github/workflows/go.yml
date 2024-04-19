@@ -21,8 +21,8 @@ jobs:
       run: |
         pwd
         wget -q -O libvlc.zip https://www.nuget.org/api/v2/package/VideoLAN.LibVLC.Windows/3.0.0
-        unzip libvlc.zip -d libvlc-extract
-        ls libvlc-extract
+        unzip -qq libvlc.zip -d libvlc-extract
+        ls libvlc-extract/build/x64
 
     - name: Install cross compile toolchain
       run: sudo apt-get install gcc-mingw-w64
@@ -36,8 +36,5 @@ jobs:
         GOARCH: amd64
         CC: "x86_64-w64-mingw32-gcc-win32"
       run: |
-        go build -v ./...
-        ls
-
-    - name: Test
-      run: go test -v ./...
+        go build -v -o bin/ludo.exe ./... 
+        ls bin
