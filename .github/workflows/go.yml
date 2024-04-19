@@ -29,7 +29,11 @@ jobs:
         CGO_ENABLED: 1
         CGO_CFLAGS: "-I/home/runner/work/ludo-go/ludo-go/libvlc-extract/build/x64/include"
         CGO_LDFLAGS: "-L/home/runner/work/ludo-go/ludo-go/libvlc-extract/build/x64"
-      run: go build -v ./...
+        GOOS: windows
+        GOARCH: amd64
+      run: |
+        go build -v ./...
+        ls
 
     - name: Test
       run: go test -v ./...
