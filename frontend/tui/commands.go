@@ -77,9 +77,6 @@ func doCommand(cmd string, m *mainModel) {
 	case "setSource", "ss":
 		setSource(arg, m)
 
-	case "version":
-		displayVersion(m)
-
 	case "help":
 		setHelpMode(m)
 
@@ -120,6 +117,7 @@ func doInterativeList(ind string, m *mainModel) {
 // Audio Search
 
 func appendPlay(arg string, m *mainModel) {
+	var audTitle string
 	if arg != "" {
 
 		if strings.HasPrefix(arg, "/a") && isPiped {
@@ -138,12 +136,26 @@ func appendPlay(arg string, m *mainModel) {
 		}
 
 		app.MediaPlayer().AppendAudio(audio)
+
+		audTitle = audio.Title
 	}
+
 	if len(app.MediaPlayer().GetQueue()) < 1 {
-		handleErr(Warn("No songs in queue"), m)
+		if handleErr(Warn("No songs in queue"), m) {
+			return
+		}
 	}
-	err := app.MediaPlayer().StartPlayback()
-	handleErr(err, m)
+
+	if app.MediaPlayer().IsPlaying() {
+		m.resultMsg = fmt.Sprintf("Added %s", Pink(audTitle))
+	} else {
+		err := app.MediaPlayer().StartPlayback()
+		if handleErr(err, m) {
+			return
+		}
+		m.resultMsg = fmt.Sprintf("Playing %s", Pink(audTitle))
+	}
+
 }
 
 func radioPlay(arg string, m *mainModel) {
@@ -179,6 +191,8 @@ func radioPlay(arg string, m *mainModel) {
 			app.MediaPlayer().AppendAudio(&audio)
 		}
 	}()
+
+	m.resultMsg = fmt.Sprintf("Starting radio from %s", Pink(audio.Title))
 }
 
 func searchPlay(arg string, m *mainModel) {
@@ -225,9 +239,14 @@ func searchPlay(arg string, m *mainModel) {
 			return
 		}
 
+		resMsg := "Added"
+
 		if !app.MediaPlayer().IsPlaying() {
 			app.MediaPlayer().StartPlayback()
+			resMsg = "Playing"
 		}
+
+		m.resultMsg = fmt.Sprintf("%s %s", resMsg, Pink(audio.Title))
 	}
 }
 
@@ -243,7 +262,11 @@ func removeAllIndex(arg string, m *mainModel) {
 	}
 
 	err := app.MediaPlayer().RemoveAllAudioFromIndex(trackIndex)
-	handleErr(err, m)
+	if handleErr(err, m) {
+		return
+	}
+
+	m.resultMsg = fmt.Sprintf("Removed all from index %s", Pink(arg))
 }
 
 func removeIndex(arg string, m *mainModel) {
@@ -258,7 +281,11 @@ func removeIndex(arg string, m *mainModel) {
 	}
 
 	err := app.MediaPlayer().RemoveAudioFromIndex(trackIndex)
-	handleErr(err, m)
+	if handleErr(err, m) {
+		return
+	}
+
+	m.resultMsg = fmt.Sprintf("Removed from index %s", Pink(arg))
 }
 
 func skipIndex(arg string, m *mainModel) {
@@ -273,17 +300,29 @@ func skipIndex(arg string, m *mainModel) {
 	}
 
 	err := app.MediaPlayer().SkipToIndex(trackIndex)
-	handleErr(err, m)
+	if handleErr(err, m) {
+		return
+	}
+
+	m.resultMsg = fmt.Sprintf("Skipping to index %s", Pink(arg))
 }
 
 func skipPrevious(m *mainModel) {
 	err := app.MediaPlayer().SkipToPrevious()
-	handleErr(err, m)
+	if handleErr(err, m) {
+		return
+	}
+
+	m.resultMsg = "Previous song"
 }
 
 func skipNext(m *mainModel) {
 	err := app.MediaPlayer().SkipToNext()
-	handleErr(err, m)
+	if handleErr(err, m) {
+		return
+	}
+
+	m.resultMsg = "Next song"
 }
 
 // media playback control
@@ -315,7 +354,9 @@ func audioForward(arg string, m *mainModel) {
 
 func resetPlayer(m *mainModel) {
 	err := app.MediaPlayer().ResetPlayer()
-	handleErr(err, m)
+	if !handleErr(err, m) {
+		m.resultMsg = "Resetting playlist"
+	}
 }
 
 func modifyVolume(arg string, m *mainModel) {
@@ -337,14 +378,6 @@ func modifyVolume(arg string, m *mainModel) {
 }
 
 // Info commands
-func displayVersion(m *mainModel) {
-	s := fmt.Sprintln("Ludo version: ", Green(app.Version))
-	s += fmt.Sprintln("Api: ", Green(app.Piped.GetPipedApi()))
-	s += fmt.Sprintln("libVlc Binding Version: ", Green(app.Info().String()))
-	s += fmt.Sprintln("Vlc Runtime Version: ", Green(app.Info().Changeset()))
-
-	m.resultMsg = s
-}
 
 func displayApiList(m *mainModel) {
 	apiList, err := app.Piped.GetPipedInstanceList()
@@ -445,16 +478,20 @@ func likeSong(arg string, m *mainModel) {
 		handleErr(errors.New("invalid item index"), m)
 		return
 	}
-	app.AudioDb().UpdateLikes(app.MediaPlayer().GetQueue()[trackIndex].YtId)
+	err := app.AudioDb().UpdateLikes(app.MediaPlayer().GetQueue()[trackIndex].YtId)
+	if !handleErr(err, m) {
+		m.resultMsg = Pink("Liked")
+	}
+
 }
 
 func setSource(arg string, m *mainModel) {
 
 	if arg == "" {
 		if isPiped {
-			m.resultMsg = "Source is Piped"
+			m.resultMsg = fmt.Sprintf("Source is %s", Pink("Piped"))
 		} else {
-			m.resultMsg = "Source is Youtube"
+			m.resultMsg = fmt.Sprintf("Source is %s", Pink("Youtube"))
 		}
 		return
 	}
@@ -462,10 +499,10 @@ func setSource(arg string, m *mainModel) {
 	switch arg {
 	case "youtube", "yt":
 		isPiped = false
-		m.resultMsg = "Source changed to Youtube"
+		m.resultMsg = fmt.Sprintf("Source changed to %s", Pink("Youtube"))
 	case "piped", "pp":
 		isPiped = true
-		m.resultMsg = "Source changed to Piped"
+		m.resultMsg = fmt.Sprintf("Source changed to %s", Pink("Piped"))
 	default:
 		handleErr(Warn("Source not valid (youtube/yt, piped/pp)"), m)
 		return
@@ -506,5 +543,17 @@ func showHelp() string {
 	help.WriteString("\nProperties\n")
 	help.WriteString(displayList(frontend.Configs))
 
+	help.WriteString("\n" + Aqua.Render("Info") + "\n")
+	help.WriteString(displayVersion())
+
 	return help.String()
+}
+
+func displayVersion() string {
+	s := fmt.Sprintln("Ludo version: ", Green(app.Version))
+	s += fmt.Sprintln("Api: ", Green(app.Piped.GetPipedApi()))
+	s += fmt.Sprintln("libVlc Binding Version: ", Green(app.Info().String()))
+	s += fmt.Sprintln("Vlc Runtime Version: ", Green(app.Info().Changeset()))
+
+	return s
 }

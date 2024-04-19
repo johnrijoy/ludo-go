@@ -28,6 +28,7 @@ var Commands = []string{
 var Configs = []string{
 	"config.piped.apiUrl-default piped api to be used",
 	"config.piped.instanceListApi-default instance list api to be used",
+	"config.cache.enabled-enable/disable audio caching, enabled by default",
 	"config.cache.path-path to audio caching",
 	"config.database.path-path to db",
 	"config.source.isPiped-enable piped as default source for audio searching",

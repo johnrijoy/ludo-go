@@ -365,12 +365,7 @@ func (vlcPlayer *VlcPlayer) SkipToNext() error {
 }
 
 func (vlcPlayer *VlcPlayer) SkipToPrevious() error {
-	err := vlcPlayer.player.PlayPrevious()
-	if err != nil {
-		return err
-	}
-
-	return vlcPlayer.updateCurrentMedia(vlcPlayer.audioState.currentTrackIndex - 1)
+	return vlcPlayer.player.PlayPrevious()
 }
 
 func (vlcPlayer *VlcPlayer) SkipToIndex(trackIndex int) error {
