@@ -20,7 +20,7 @@ jobs:
     - uses: actions/cache@v2
       id: cache-packages  # give it a name for checking the cache hit-or-not
       with:
-        path: ./packages/  # what we cache: the folder
+        path: ./libvlc-extract/  # what we cache: the folder
         key: libvlc-3.0.0-nuget
         
     - name: Pull libvlc library
