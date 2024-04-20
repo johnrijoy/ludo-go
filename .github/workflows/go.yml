@@ -1,0 +1,67 @@
+# This workflow will build a golang project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+
+name: Go
+
+# on: workflow_dispatch
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.20'
+
+    - uses: actions/cache@v2
+      id: cache-packages  # give it a name for checking the cache hit-or-not
+      with:
+        path: ./libvlc-extract/  # what we cache: the folder
+        key: libvlc-3.0.0-nuget
+        
+    - name: Pull libvlc library
+      if: steps.cache-packages.outputs.cache-hit != 'true'
+      run: |
+        pwd
+        wget -q -O libvlc.zip https://www.nuget.org/api/v2/package/VideoLAN.LibVLC.Windows/3.0.0
+        unzip -qq libvlc.zip -d libvlc-extract
+        ls libvlc-extract/build/x64
+
+    - name: Install cross compile toolchain
+      run: sudo apt-get install gcc-mingw-w64
+
+    - name: Build
+      env:
+        CGO_ENABLED: 1
+        CGO_CFLAGS: "-I/home/runner/work/ludo-go/ludo-go/libvlc-extract/build/x64/include"
+        CGO_LDFLAGS: "-L/home/runner/work/ludo-go/ludo-go/libvlc-extract/build/x64"
+        GOOS: windows
+        GOARCH: amd64
+        CC: "x86_64-w64-mingw32-gcc-win32"
+      run: |
+        mkdir nbin
+        go build -v -o nbin ./... 
+        ls nbin
+
+#    - name: Upload binaries
+#       uses: actions/upload-artifact@v4
+#      with:
+#        name: ludo-bin
+#        path: nbin/ludo-go.exe
+
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: nbin/ludo-go.exe
