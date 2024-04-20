@@ -64,10 +64,7 @@ type AudioState struct {
 func (audioState *AudioState) updateAudioState(audioDetails *AudioDetails) {
 	audioUtilsLog.Println("Updating Audio State...")
 	audioState.currentPos = 0
-	audioState.YtId = audioDetails.YtId
-	audioState.Title = audioDetails.Title
-	audioState.Duration = audioDetails.Duration
-	audioState.AudioStreamUrl = audioDetails.AudioStreamUrl
+	audioState.AudioDetails = *audioDetails
 }
 
 func (audioState *AudioState) GetFormattedPosition() string {
