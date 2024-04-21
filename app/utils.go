@@ -2,10 +2,6 @@ package app
 
 import "fmt"
 
-const (
-	Version = "0.1.0"
-)
-
 // helper string
 const (
 	ludoBaseDir        = "ludo"

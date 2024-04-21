@@ -47,7 +47,6 @@ func PlayerStateString(i int) (string, bool) {
 
 // display information regarding libVlc version
 func Info() vlc.VersionInfo {
-
 	return vlc.Version()
 }
 
@@ -57,6 +56,8 @@ func (vlcPlayer *VlcPlayer) InitPlayer() error {
 	if err != nil {
 		return err
 	}
+
+	vlc.SetAppName(fmt.Sprintf("%s v%s", "LudoGo", Version), "")
 
 	// Create a new list player.
 	player, err := vlc.NewListPlayer()

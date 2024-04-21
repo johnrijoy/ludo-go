@@ -15,8 +15,9 @@ import (
 )
 
 var (
-	vlcPlayer *app.VlcPlayer
-	audioDb   *app.AudioDatastore
+	vlcPlayer     *app.VlcPlayer
+	audioDb       *app.AudioDatastore
+	isPipedSource bool = true
 )
 
 const defaultForwardRewind = 10
@@ -110,6 +111,9 @@ func runCommand(command string) bool {
 
 	case "randApi":
 		modifyApiRandom()
+
+	case "setSource", "ss":
+		modifySource(arg)
 
 	case "version":
 		displayVersion()
@@ -321,7 +325,7 @@ func radioPlay(arg string) {
 		removeAllIndex("")
 	} else {
 		var err error
-		audio, err = app.GetSong(false)(arg, false)
+		audio, err = app.GetSong(isPipedSource)(arg, false)
 		handleErrExit(err)
 
 		err = vlcPlayer.ResetPlayer()
@@ -332,7 +336,7 @@ func radioPlay(arg string) {
 	}
 
 	go func() {
-		audioList, err := app.GetPlayList(false)(audio.YtId, true, 1, 10)
+		audioList, err := app.GetPlayList(isPipedSource)(audio.YtId, true, 1, 10)
 		handleErrExit(err)
 
 		for _, audio := range *audioList {
@@ -343,7 +347,7 @@ func radioPlay(arg string) {
 
 func appendPlay(arg string) {
 	if arg != "" {
-		audio, err := app.GetSong(true)(arg, false)
+		audio, err := app.GetSong(isPipedSource)(arg, false)
 		handleErrExit(err)
 
 		err = vlcPlayer.AppendAudio(audio)
@@ -363,7 +367,7 @@ func searchPlay(arg string) {
 		return
 	}
 
-	audioBasicList, err := app.GetSearchList(true)(arg, 0, 10)
+	audioBasicList, err := app.GetSearchList(isPipedSource)(arg, 0, 10)
 	handleErrExit(err)
 
 	for i, audio := range *audioBasicList {
@@ -391,7 +395,7 @@ func searchPlay(arg string) {
 
 	audioBasic := (*audioBasicList)[index]
 
-	audio, err := app.GetSong(true)(audioBasic.YtId, true)
+	audio, err := app.GetSong(isPipedSource)(audioBasic.YtId, true)
 	if displayErr(err) {
 		return
 	}
@@ -446,7 +450,7 @@ func fetchSongList(arg string) {
 	}
 
 	for i, audDoc := range audDocs {
-		fmt.Printf("%-2d - %-50s | %-20s | %20s\n", i+1, audDoc.Title, audDoc.Uploader, audDoc.GetFormattedDuration())
+		fmt.Printf("%-2d - %-50s | %-20s | %20s\n", i+1, safeTruncString(audDoc.Title, 50), safeTruncString(audDoc.Uploader, 20), audDoc.GetFormattedDuration())
 	}
 }
 
@@ -462,6 +466,21 @@ func likeSong(arg string) {
 		errorLog("invalid item index")
 	}
 	audioDb.UpdateLikes(vlcPlayer.GetQueue()[trackIndex].YtId)
+}
+
+func modifySource(arg string) {
+	switch arg {
+	case "youtube", "yt":
+		isPipedSource = false
+		fmt.Println("Source changed to ", Green("Youtube"))
+	case "piped", "pp":
+		isPipedSource = true
+		fmt.Println("Source changed to ", Green("Piped"))
+	case "":
+		warnLog("no source given")
+	default:
+		errorLog("Invalid source")
+	}
 }
 
 func showStartupMessage() {
