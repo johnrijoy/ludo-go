@@ -45,6 +45,7 @@ func loadProperties() (*properties.Properties, error) {
 		prop = properties.NewProperties()
 		prop.Set(pipedApiKey, defaultPipedApi)
 		prop.Set(instanceListApiKey, defaultInstanceListApi)
+		prop.Set(isSourcePiped, "true")
 		if err := createPropertiesFile(prop, ludoCfg); err != nil {
 			return nil, err
 		}

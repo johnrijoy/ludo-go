@@ -1,5 +1,7 @@
 package app
 
+import "fmt"
+
 // helper string
 const (
 	ludoBaseDir        = "ludo"
@@ -9,6 +11,7 @@ const (
 
 // properties file
 const (
+	isSourcePiped          = "config.source.isPiped"
 	isCacheEnabledKey      = "config.cache.enabled"
 	dataStoreKey           = "config.database.path"
 	cacheDirKey            = "config.cache.path"
@@ -32,4 +35,10 @@ func trimList[T any](inputList []T, offset int, limit int) []T {
 	}
 
 	return outputList
+}
+
+func GetFormattedTime(s int) string {
+	formattedPos := fmt.Sprintf("%dm%ds", s/60, s%60)
+
+	return formattedPos
 }

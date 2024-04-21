@@ -82,3 +82,7 @@ func AudioDb() *AudioDatastore {
 }
 
 // App Functions
+
+func IsSourcePiped() bool {
+	return props.GetBool(isSourcePiped, true)
+}
