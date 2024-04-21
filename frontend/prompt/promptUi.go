@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/johnrijoy/ludo-go/app"
+	"github.com/johnrijoy/ludo-go/frontend"
 )
 
 var (
@@ -20,40 +21,6 @@ var (
 )
 
 const defaultForwardRewind = 10
-
-var commands = []string{
-	"play,add-play the song | play <song name>",
-	"search,s-search the song and display search result | search <song name>",
-	"radio-start radio for song | radio <song name>",
-	"pause,resume,p-toggle pause/resume",
-	"showq,q-display song queue",
-	"curr,c-display current song",
-	"skipn,n-skip to next song",
-	"skipb,b-skip to previous song",
-	"skip-skip to the specified index, default is 1 | skip <index>",
-	"remove,rem-remove song at specified index, default is last | remove <index>",
-	"removeAll,reml-remove all songs stating from at specified index, default is current+1 | removeAll <index>",
-	"forward,f-forwads playback by 10s ** | forward <seconds>",
-	"rewind,r-rewinds playback by 10s ** | rewind <seconds>",
-	"setVol,v-sets the volume by amount (0-100) | setVol <volume>",
-	"stop-resets the player",
-	"listSongs,ls-displays list of songs based on criteria (recent,likes,plays) | listSongs <criteria>",
-	"checkApi-check the current piped api",
-	"setApi-set new piped api | setApi <piped api>",
-	"listApi-display all available instances",
-	"randApi-randomly select an piped instance",
-	"setSource,ss-modify search source (piped, youtube) | setSource <piped api>",
-	"version-display application details",
-	"quit-quit application",
-}
-
-var configs = []string{
-	"config.piped.apiUrl-default piped api to be used",
-	"config.piped.instanceListApi-default instance list api to be used",
-	"config.database.path-path to db",
-	"config.cache.path-path to audio caching",
-	"config.cache.enabled-boolean to enable/disable caching",
-}
 
 func Run() {
 	exitSig := false
@@ -305,28 +272,31 @@ func skipNext() {
 }
 
 func displayCurrentSong() {
+	var statusMsg string
 	if vlcPlayer.IsPlaying() {
-		fmt.Println(Green("Now playing..."))
+		statusMsg = Green(fmt.Sprintf("%-30s", "Now playing..."))
 	} else if vlcPlayer.CheckMediaError() {
-		fmt.Println(Red("Error in playing media"))
+		statusMsg = Red(fmt.Sprintf("%-30s", "Error in playing media"))
 	} else {
-		fmt.Println(Yellow(vlcPlayer.FetchPlayerState()))
+		statusMsg = Yellow(fmt.Sprintf("%-30s", vlcPlayer.FetchPlayerState()))
 	}
 
-	audState := vlcPlayer.GetAudioState()
-	currPos, totPos := (&audState).GetPositionDetails()
+	aud := vlcPlayer.GetAudioState().AudioBasic
+	currPos, totPos := vlcPlayer.GetMediaPosition()
 
-	scale := len((&audState).String())
+	scale := 50
 
+	navMsg := Gray(strings.Repeat("-", scale))
 	if totPos > currPos {
 		scaledCurrPos := int(math.Round((float64(currPos) / float64(totPos)) * float64(scale)))
 		restPosition := scale - scaledCurrPos
 
-		navMsg := Magenta(strings.Repeat(">", scaledCurrPos)) + Gray(strings.Repeat("-", restPosition))
-		fmt.Println(navMsg)
+		navMsg = Magenta(strings.Repeat(">", scaledCurrPos)) + Gray(strings.Repeat("-", restPosition))
 	}
 
-	fmt.Println(&audState)
+	fmt.Printf("%s%10s%10s\n", statusMsg, app.GetFormattedTime(currPos), app.GetFormattedTime(totPos))
+	fmt.Printf("%s\n", navMsg)
+	fmt.Printf("%-30s%20s\n", safeTruncString(aud.Title, 30), safeTruncString(aud.Uploader, 20))
 }
 
 func displayQueue() {
@@ -380,7 +350,8 @@ func appendPlay(arg string) {
 		audio, err := app.GetSong(isPipedSource)(arg, false)
 		handleErrExit(err)
 
-		vlcPlayer.AppendAudio(audio)
+		err = vlcPlayer.AppendAudio(audio)
+		handleErrExit(err)
 	}
 	if len(vlcPlayer.GetQueue()) < 1 {
 		warnLog("no song in queue for playback")
@@ -537,10 +508,10 @@ func showHelp() {
 		}
 	}
 	fmt.Println("Commands")
-	displayList(commands)
+	displayList(frontend.Commands)
 
 	fmt.Println("\nProperties")
-	displayList(configs)
+	displayList(frontend.Configs)
 }
 
 //////////////////////

@@ -39,12 +39,24 @@ func getYtPlaylist(musicId string) ([]AudioBasic, error) {
 
 func getYtSearchList(searchString string, offset int, limit int) (*[]AudioBasic, error) {
 	search := ytmusic.Search(searchString)
-	result, err := search.Next()
-	if err != nil {
-		return nil, err
+	var tracks []*ytmusic.TrackItem
+	var combErr error
+	var isErr bool
+	for search.NextExists() && len(tracks) <= offset+limit {
+		result, err := search.Next()
+		if err == nil {
+			tracks = append(tracks, result.Tracks...)
+		} else {
+			combErr = errors.Join(combErr, err)
+			isErr = true
+		}
 	}
 
-	trackList := trimList(result.Tracks, offset, limit)
+	if isErr && len(tracks) < 1 {
+		return nil, combErr
+	}
+
+	trackList := trimList(tracks, offset, limit)
 
 	audioBasicList := trackItemToAudioBasic(trackList)
 
