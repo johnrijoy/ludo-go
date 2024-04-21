@@ -8,12 +8,12 @@ import (
 )
 
 func main() {
-	isTui := flag.Bool("tui", false, "Start in TUI mode")
+	isPrompt := flag.Bool("p", false, "Start in prompt mode")
 	flag.Parse()
 
-	if *isTui {
-		tui.Run()
-	} else {
+	if *isPrompt {
 		prompt.Run()
+	} else {
+		tui.Run()
 	}
 }
