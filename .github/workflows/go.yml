@@ -49,6 +49,7 @@ jobs:
         GOOS: windows
         GOARCH: amd64
         CC: "x86_64-w64-mingw32-gcc-win32"
+        GOFLAGS: "-ldflags=-X=github.com/johnrijoy/ludo-go/app.Version=${{  github.ref_name }}"
       run: |
         mkdir nbin
         go build -v -o nbin ./... 
