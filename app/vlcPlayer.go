@@ -41,7 +41,6 @@ var playerStateMap = map[int]string{
 
 // display information regarding libVlc version
 func Info() vlc.VersionInfo {
-
 	return vlc.Version()
 }
 

@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 )
 
+var Version string
+
 var appLog = log.New(io.Discard, "App:", log.LstdFlags|log.Lmsgprefix)
 
 var isRunning = false
