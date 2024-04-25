@@ -3,11 +3,11 @@
 
 name: Go
 
-on: workflow_dispatch
-# on:
-#   push:
-#     tags:
-#       - "v*.*.*"
+# on: workflow_dispatch
+on:
+  push:
+    tags:
+      - "v*.*.*"
 
 permissions:
   contents: write
