@@ -3,11 +3,11 @@
 
 name: Go
 
-# on: workflow_dispatch
-on:
-  push:
-    tags:
-      - "v*.*.*"
+on: workflow_dispatch
+# on:
+#   push:
+#     tags:
+#       - "v*.*.*"
 
 permissions:
   contents: write
@@ -65,7 +65,6 @@ jobs:
         GOARCH: amd64
         GOFLAGS: "-ldflags=-X=github.com/johnrijoy/ludo-go/app.Version=${{  github.ref_name }}"
       run: |
-        mkdir nbin
         go build -v -o nbin ./... 
         ls nbin
     
